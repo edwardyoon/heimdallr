@@ -30,14 +30,16 @@ object ChatRoomActor {
 
 class ChatRoomActor extends Actor {
   implicit val executionContext: ExecutionContext = context.dispatcher
-  implicit val system = ActorSystem("spoonchat", ConfigFactory.load())
+  implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
 
   import ChatRoomActor._
   var users: Set[ActorRef] = Set.empty
 
-  // TODO make this configurable
-  val s = new RedisClient("localhost", 6379)
-  val p = new RedisClient("localhost", 6379)
+  val chatRoomName = self.path.name
+  var redisIp = system.settings.config.getString("akka.redis-ip")
+  var redisPort = system.settings.config.getInt("akka.redis-port")
+  val s = new RedisClient(redisIp, redisPort)
+  val p = new RedisClient(redisIp, redisPort)
 
   s.subscribe("chat") { pubsub =>
     pubsub match {
