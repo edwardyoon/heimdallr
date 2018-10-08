@@ -32,7 +32,7 @@ import com.typesafe.config.ConfigFactory
 object Server {
   def main(args: Array[String]): Unit = {
 
-    implicit val system = ActorSystem("spoonchat", ConfigFactory.load())
+    implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
     implicit val materializer = ActorMaterializer()
 
     println (system.settings.config.getValue("akka.loggers"))
