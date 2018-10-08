@@ -4,12 +4,12 @@ Heimdallr is a large-scale chat application server written in Scala language bas
 
 ## Comparison w/ Node.js and Socket.io 
 
-|  | Node.js | Akka HTTP | 
+|  | Node.js | Heimdallr | 
 | :---: | :---: | :---: |
 | Requests per sec | 14533.90 | 20675.89 |
 | Avg. Latency | 68.94 ms | 13.35 ms |
 
-|  | Socket.io | Akka | 
+|  | Socket.io | Heimdallr | 
 | :---: | :---: | :---: |
 | 10 sub, 1 pub | 43 ms | 43 ms |
 | 100 sub, 5 pub | 62 ms | 61 ms |
