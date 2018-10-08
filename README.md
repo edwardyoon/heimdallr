@@ -37,3 +37,6 @@ Clone the repository and try to build with sbt:
 
 `% sbt run`
 
+To enabling the Redis PubSub, open the application.conf file and edit the Redis IP address and port like below:
+
+`redis-ip = "192.168.0.116"` and `redis-port = 6379`
