@@ -2,6 +2,10 @@
 
 Heimdallr is a large-scale chat application server inspired LINE+ chat service architecture, written in Scala language based on Akka's actor model. It provides fault-tolerance and reliable scale-out options based on Redis Pubsub to support expansion from proof-of-concept to enterprise-ready solutions. This project is licensed Apache License v2.0. https://www.apache.org/licenses/LICENSE-2.0.txt
 
+## Architecture
+
+It consists of HTTP Server, ChatRoomActor, and UserActor. Each ChatRoom can be distributed across multiple servers. To synchronize the message among server, we uses Redis PubSub. UserActor is created per every websocket client.
+
 <p align="center">
   <img width="75%" src="https://github.com/edwardyoon/Heimdallr/blob/master/project/architecture.png?raw=true">
 </p>
