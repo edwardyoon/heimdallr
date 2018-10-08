@@ -7,7 +7,7 @@ Heimdallr is a large-scale chat application server inspired LINE+ chat service a
 It consists of HTTP Server, ChatRoomActor, and UserActor. Each ChatRoom can be distributed across multiple servers. To synchronize the message among servers, we uses Redis PubSub. UserActor is created per every websocket client.
 
 <p align="center">
-  <img width="80%" src="https://github.com/edwardyoon/Heimdallr/blob/master/project/architecture.png?raw=true">
+  <img width="85%" src="https://raw.githubusercontent.com/edwardyoon/Heimdallr/master/project/architecture.png">
 </p>
 
 
