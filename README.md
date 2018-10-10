@@ -13,7 +13,7 @@ It consists of HTTP Server, ChatRoomActor, and UserActor. Each ChatRoom can be d
 
 ## Comparison w/ Node.js and Socket.io 
 
-The below HTTP server test was done using wrk benchmarking tool with 6 threads and 10000 connections on m4.xlarge single instance.
+The below HTTP server test was done using wrk benchmarking tool with 6 threads and 10000 connections on m4.large single instance.
 
 |  | Node.js | Heimdallr | 
 | :--- | :--- | :--- |
@@ -21,7 +21,7 @@ The below HTTP server test was done using wrk benchmarking tool with 6 threads a
 | Avg. Latency | 68.94 ms | 13.35 ms |
 | Summary | 873389 requests in 1.00m, 108.36MB read<br>Socket errors: connect 8981, read 0, write 0, timeout 0<br>Requests/sec:  14533.90<br>Transfer/sec:      1.80MB | 1242244 requests in 1.00m, 181.26MB read<br>Socket errors: connect 8981, read 0, write 0, timeout 0<br>Requests/sec:  20675.89<br>Transfer/sec:      3.02MB |
 
-This table shows the performance of event broadcasting, the average latency time until message arrives at websocket client. The test was done on same m4.xlarge single instance.
+This table shows the performance of event broadcasting, the average latency time until message arrives at websocket client. The test was done on same m4.large single instance.
 
 |  | Socket.io | Heimdallr | 
 | :---: | :---: | :---: |
