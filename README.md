@@ -23,13 +23,13 @@ The below HTTP server test was done using wrk benchmarking tool with 6 threads a
 
 This table shows the performance of event broadcasting, the average latency time until message arrives at websocket client. The test was done on same m4.large single instance.
 
-|  | Socket.io (single node) | Heimdallr (single node) | Heimdallr Cluster (4 nodes) |
-| :---: | :---: | :---: | :---: |
-| 10 sub, 1 pub | 43 ms | 43 ms | 20 ms |
-| 100 sub, 5 pub | 62 ms | 61 ms | 32 ms |
-| 1000 sub, 10 pub | 496 ms | 390 ms | 47 ms |
-| 1000 sub, 50 pub | 1304 ms | 554 ms | 109 ms |
-| 1000 sub, 100 pub | 2242 ms | 605 ms | 114 ms |
+|  | Socket.io (single node) | Heimdallr (single node) | Heimdallr Cluster (2 nodes) | Heimdallr Cluster (4 nodes) |
+| :---: | :---: | :---: | :---: | :---: |
+| 10 sub, 1 pub | 43 ms | 43 ms | 16 ms | 20 ms |
+| 100 sub, 5 pub | 62 ms | 61 ms | 53 ms | 32 ms |
+| 1000 sub, 10 pub | 496 ms | 390 ms | 129 ms | 47 ms |
+| 1000 sub, 50 pub | 1304 ms | 554 ms | 141 ms | 109 ms |
+| 1000 sub, 100 pub | 2242 ms | 605 ms | 202 ms | 114 ms |
 
 ## Getting Started
 
