@@ -53,8 +53,8 @@ And edit the virtual host file like below:
                 ProxyPass "/chat" balancer://mycluster/chat
 
                 <Proxy "balancer://mycluster">
-                        BalancerMember ws://AKKA_SERVER_ADDRESS_1:8080
-                        BalancerMember ws://AKKA_SERVER_ADDRESS_2:8080
+                        BalancerMember ws://HEIMDALLR_SERVER_ADDRESS_1:8080
+                        BalancerMember ws://HEIMDALLR_SERVER_ADDRESS_2:8080
                 </Proxy>
         </IfModule>
 </VirtualHost>
