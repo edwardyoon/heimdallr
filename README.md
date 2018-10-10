@@ -23,7 +23,7 @@ The below HTTP server test was done using wrk benchmarking tool with 6 threads a
 
 This table shows the performance of event broadcasting, the average latency time until message arrives at websocket client. The test was done on same m4.large single instance.
 
-|  | Socket.io | Heimdallr | Heimdallr Cluster (4 nodes) |
+|  | Socket.io (single node) | Heimdallr (single node) | Heimdallr Cluster (4 nodes) |
 | :---: | :---: | :---: | :---: |
 | 10 sub, 1 pub | 43 ms | 43 ms | 20 ms |
 | 100 sub, 5 pub | 62 ms | 61 ms | 32 ms |
