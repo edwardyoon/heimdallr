@@ -20,6 +20,8 @@ package chat
 import scala.concurrent.ExecutionContext
 import com.redis._
 import akka.actor._
+import com.redis.RedisClient
+import com.typesafe.config.ConfigFactory
 
 object ChatRoomActor {
   case object Join
@@ -27,7 +29,7 @@ object ChatRoomActor {
 }
 class ChatRoomActor  extends Actor {
   implicit val executionContext: ExecutionContext = context.dispatcher
-//  implicit val system = ActorSystem("spoonchat", ConfigFactory.load())
+  implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
 
   import ChatRoomActor ._
   var users: Set[ActorRef] = Set.empty
