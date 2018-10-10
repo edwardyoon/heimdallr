@@ -53,8 +53,8 @@ And edit the virtual host file like below:
                 ProxyPass "/chat" balancer://mycluster/chat
 
                 <Proxy "balancer://mycluster">
-                        BalancerMember ws://HEIMDALLR_SERVER_ADDRESS_1:8080
-                        BalancerMember ws://HEIMDALLR_SERVER_ADDRESS_2:8080
+                        BalancerMember ws://{HEIMDALLR_SERVER_ADDRESS_1}:8080
+                        BalancerMember ws://{HEIMDALLR_SERVER_ADDRESS_2}:8080
                 </Proxy>
         </IfModule>
 </VirtualHost>
@@ -63,4 +63,4 @@ And edit the virtual host file like below:
 
 To enabling the Redis PubSub, open the application.conf file and edit the Redis IP address and port like below:
 
-`redis-ip = "127.0.0.1"` and `redis-port = 6379`
+`redis-ip = "{REDIS_IP_ADDRESS}"` and `redis-port = 6379`
