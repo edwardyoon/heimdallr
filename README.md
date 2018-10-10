@@ -37,6 +37,28 @@ Clone the repository and try to build with sbt:
 
 `% sbt run`
 
+To setup websocket load balancer, you can use Apache2 HTTPD and ws_tunnel module
+
+```
+<VirtualHost *:80>
+        DocumentRoot /var/www/html
+
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        <IfModule proxy_module>
+                ProxyRequests Off
+                ProxyPass "/chat" balancer://mycluster/chat
+
+                <Proxy "balancer://mycluster">
+                        BalancerMember ws://AKKA_SERVER_ADDRESS_1:8080
+                        BalancerMember ws://AKKA_SERVER_ADDRESS_2:8080
+                </Proxy>
+        </IfModule>
+</VirtualHost>
+```
+
+
 To enabling the Redis PubSub, open the application.conf file and edit the Redis IP address and port like below:
 
 `redis-ip = "127.0.0.1"` and `redis-port = 6379`
