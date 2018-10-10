@@ -1,6 +1,6 @@
 # Heimdallr
 
-Heimdallr is a large-scale chat application server inspired by the LINE+ chat service architecture and written in Scala language based on Akka's actor model. It provides fault-tolerant and reliable scaling-out options, based on Redis Pubsub to support expansion from proof-of-concept to enterprise-ready solutions. It has been tested to be at least 100x faster than socket.io for large-scale systems. This project is licensed under the Apache License v2.0. https://www.apache.org/licenses/LICENSE-2.0.txt
+Heimdallr is a large-scale chat application server inspired by the LINE+ chatting service architecture and written in Scala language based on Akka's actor model. It provides fault-tolerant and reliable scaling-out options, based on Redis Pubsub to support expansion from proof-of-concept to enterprise-ready solutions. It has been tested to be at least 100x faster than socket.io for large-scale systems. This project is licensed under the Apache License v2.0. https://www.apache.org/licenses/LICENSE-2.0.txt
 
 ## Architecture
 
