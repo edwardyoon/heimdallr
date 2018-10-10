@@ -16,51 +16,61 @@
  */
 package chat
 
-import akka.actor._
 
-import com.redis.{RedisClient, PubSubMessage, S, U, E, M}
 import scala.concurrent.ExecutionContext
-import com.redis.RedisClient
-import com.typesafe.config.ConfigFactory
+import com.redis._
+import akka.actor._
 
 object ChatRoomActor {
   case object Join
-  case class ChatMessage(message: String)
+  case class ChatMessage(message:String)
 }
-
-class ChatRoomActor extends Actor {
+class ChatRoomActor  extends Actor {
   implicit val executionContext: ExecutionContext = context.dispatcher
-  implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
+//  implicit val system = ActorSystem("spoonchat", ConfigFactory.load())
 
-  import ChatRoomActor._
+  import ChatRoomActor ._
   var users: Set[ActorRef] = Set.empty
 
-  val chatRoomName = self.path.name
-  var redisIp = system.settings.config.getString("akka.redis-ip")
-  var redisPort = system.settings.config.getInt("akka.redis-port")
-  val s = new RedisClient(redisIp, redisPort)
-  val p = new RedisClient(redisIp, redisPort)
+  // TODO make this configurable
+  val s = new RedisClient("192.168.0.116", 6379)
+  val p = new RedisClient("192.168.0.116", 6379)
 
-  s.subscribe("chat") { pubsub =>
-    pubsub match {
-      case S(channel, no) => println("subscribed to " + channel + " and count = " + no)
-      case U(channel, no) => println("unsubscribed from " + channel + " and count = " + no)
-      case E(exception) => println(exception + "Fatal error caused consumer dead. " +
-        "Need to reconnecting to master or connect to backup")
+  s.subscribe("chat") {
+    case S(channel, no) => println("subscribed to " + channel + " and count = " + no)
+    case U(channel, no) => println("unsubscribed from " + channel + " and count = " + no)
+    case E(exception) => println(exception + "Fatal error caused consumer dead. " +
+      "Need to reconnecting to master or connect to backup")
 
-      case M(channel, msg) =>
-        msg match {
-          // exit will unsubscribe from all channels and stop subscription service
-          case "exit" =>
-            println("unsubscribe all ..")
-            s.unsubscribe
+    case M(channel, msg) =>
+      msg match {
+        // exit will unsubscribe from all channels and stop subscription service
+        case "exit" =>
+          println("unsubscribe all ..")
+          s.unsubscribe()
+        case x if x startsWith "-" =>
+          val p : Seq[Char] = x
+          p match {
+            case Seq('-', rest @ _*)=>
+              s.unsubscribe(rest.toString)
 
-          // if message is coming from others, broadcast to locally connected users
-          case x =>
-            println("received message on channel " + channel + " as : " + x)
-            users.foreach(_ ! ChatRoomActor.ChatMessage(x))
-        }
-    }
+          }
+        case x if x startsWith "+" =>
+          val p : Seq[Char] = x
+          p match {
+            case Seq('+', rest @ _*)=>
+              s.subscribe(rest.toString){m => }
+
+          }
+
+
+        // if message is coming from others, broadcast to locally connected users
+        case x =>
+          println("received message on channel " + channel + " as : " + x)
+          println("broadcast message")
+          users.foreach(_ ! ChatRoomActor.ChatMessage(x))
+
+      }
   }
 
   def receive = {
