@@ -35,8 +35,6 @@ object Server {
     implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
     implicit val materializer = ActorMaterializer()
 
-    println (system.settings.config.getValue("akka.loggers"))
-
     val chatRoom = system.actorOf(Props(new ChatRoomActor), "chat")
 
     def newUser(): Flow[Message, Message, NotUsed] = {
@@ -47,8 +45,8 @@ object Server {
         Flow[Message].map {
           // transform websocket message to domain message
           case TextMessage.Strict(text) => UserActor.IncomingMessage(text)
-        }.to(Sink.actorRef[UserActor.IncomingMessage](userActor, PoisonPill))
           // PoisonPill asynchronously stops disconnected user actor
+        }.to(Sink.actorRef[UserActor.IncomingMessage](userActor, PoisonPill))
 
       val outgoingMessages: Source[Message, NotUsed] =
         Source.actorRef[UserActor.OutgoingMessage](10000, OverflowStrategy.fail)
