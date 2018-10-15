@@ -55,6 +55,20 @@ class ChatRoomActor extends Actor {
             println("unsubscribe all ..")
             s.unsubscribe
 
+          case x if x startsWith "-" =>
+            val p : Seq[Char] = x
+            p match {
+              case Seq('-', rest @ _*)=>
+                s.unsubscribe(rest.toString)
+            }
+
+          case x if x startsWith "+" =>
+            val p : Seq[Char] = x
+            p match {
+              case Seq('+', rest @ _*)=>
+                s.subscribe(rest.toString){m => }
+            }
+            
           // if message is coming from others, broadcast to locally connected users
           case x =>
             println("received message on channel " + channel + " as : " + x)
