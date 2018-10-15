@@ -41,7 +41,7 @@ class ChatRoomActor extends Actor {
   val s = new RedisClient(redisIp, redisPort)
   val p = new RedisClient(redisIp, redisPort)
 
-  s.subscribe("chat") { pubsub =>
+  s.subscribe(chatRoomName) { pubsub =>
     pubsub match {
       case S(channel, no) => println("subscribed to " + channel + " and count = " + no)
       case U(channel, no) => println("unsubscribed from " + channel + " and count = " + no)
@@ -69,7 +69,7 @@ class ChatRoomActor extends Actor {
                 s.subscribe(rest.toString){m => }
             }
             
-          // if message is coming from others, broadcast to locally connected users
+          // TODO if message is coming from others, broadcast to locally connected users
           case x =>
             println("received message on channel " + channel + " as : " + x)
             users.foreach(_ ! ChatRoomActor.ChatMessage(x))
@@ -88,7 +88,7 @@ class ChatRoomActor extends Actor {
 
     case msg: ChatMessage =>
       // sync local message with others
-      p.publish("chat", msg.message);
+      p.publish(chatRoomName, msg.message);
       users.foreach(_ ! msg)
   }
 
