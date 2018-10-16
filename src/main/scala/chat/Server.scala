@@ -28,6 +28,8 @@ import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.io.StdIn
 import com.typesafe.config.ConfigFactory
+import scala.util.{Failure,Success}
+import scala.concurrent.ExecutionContext.Implicits._
 
 object Server {
   def main(args: Array[String]): Unit = {
@@ -69,12 +71,16 @@ object Server {
         }
       }
 
-    val binding = Await.result(Http().bindAndHandle(route, "0.0.0.0", 8080), 30.seconds)
+    val binding = Http().bindAndHandle(route, "0.0.0.0", 8080)
 
     // the rest of the sample code will go here
-    println("Started server at 127.0.0.1:8080, press enter to kill server")
-    StdIn.readLine()
-    system.terminate()
+     binding.onComplete{
+      case Success(binding) =>
+        val localAddress = binding.localAddress
+        println(s"Server is listening on ${localAddress.getHostName}:${localAddress.getPort}")
+      case Failure(e) =>
+        println(s"Binding failed with ${e.getMessage}")
+        system.terminate()
   }
 
 }
