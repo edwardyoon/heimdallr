@@ -35,9 +35,11 @@ object Server {
     implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
     implicit val materializer = ActorMaterializer()
 
-    val chatRoom = system.actorOf(Props(new ChatRoomActor), "chat")
+    var chatRooms: Map[Int, ActorRef] = Map.empty[Int, ActorRef]
 
-    def newUser(): Flow[Message, Message, NotUsed] = {
+    def newUser(chatRoomID: Int): Flow[Message, Message, NotUsed] = {
+       // Gets chatroom actor reference
+      val chatRoom = getChatRoomActorRef(chatRoomID)
       // new connection - new user actor
       val userActor = system.actorOf(Props(new UserActor(chatRoom)))
 
@@ -62,10 +64,20 @@ object Server {
       Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
     }
 
+    def getChatRoomActorRef(number:Int): ActorRef = {
+      chatRooms.getOrElse (number, createNewChatRoom (number) )
+    }
+
+    def createNewChatRoom(number: Int): ActorRef = {
+      val chatroom = system.actorOf(Props(new ChatRoomActor), "chat" + number)
+      chatRooms += number -> chatroom
+      chatroom
+    }
+
     val route =
-      path("chat") {
-        get {
-          handleWebSocketMessages(newUser())
+      pathPrefix(IntNumber) {
+        chatRoomID => {
+          handleWebSocketMessages(newUser(chatRoomID))
         }
       }
 
