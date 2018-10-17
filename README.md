@@ -68,3 +68,23 @@ And edit the virtual host file like below:
 To enable the Redis PubSub, open the application.conf file and edit the Redis IP address and port like below:
 
 `redis-ip = "{REDIS_IP_ADDRESS}"` and `redis-port = 6379`
+
+### Java Websocket Client Example
+
+In this example, Java-WebSocket library was used.
+
+```Java
+public class WSClientSample extends WebSocketClient {
+
+  public WSClientSample(URI serverURI) {
+    super(serverURI);
+  }
+  ...
+  
+  public static void main(String[] args) throws Exception {
+    String uri = ("ws://APACHE_WEBSERVERR/{CHATROOMID}");
+    WSClientSample c = new WSClientSample(new URI(uri));
+    c.connect();
+  }
+}
+```
