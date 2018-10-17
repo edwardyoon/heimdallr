@@ -37,7 +37,7 @@ Clone the repository and try to build with sbt:
 
 `% sbt run`
 
-To setup a websocket load balancer, you can use Apache2 HTTPD with proxy modules. Enable modules with the following command: `sudo a2enmod proxy proxy_http proxy_wstunnel proxy_balancer lbmethod_byrequests`
+To setup a websocket load balancer, you can use Apache2 HTTPD with proxy modules. Enable modules with the following command: `sudo a2enmod rewrite proxy proxy_http proxy_wstunnel proxy_balancer lbmethod_byrequests`
 
 And edit the virtual host file like below:
 
@@ -49,8 +49,12 @@ And edit the virtual host file like below:
         CustomLog ${APACHE_LOG_DIR}/access.log combined
 
         <IfModule proxy_module>
+                RewriteEngine On
+                RewriteCond %{REQUEST_URI} !^/
+                RewriteRule ^(.*)$ /$1 [P]
+
                 ProxyRequests Off
-                ProxyPass "/chat" balancer://mycluster/chat
+                ProxyPass "/" balancer://mycluster/
 
                 <Proxy "balancer://mycluster">
                         BalancerMember ws://{HEIMDALLR_SERVER_ADDRESS_1}:8080
