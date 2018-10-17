@@ -93,6 +93,6 @@ object Server {
       case Failure(e) =>
         println(s"Binding failed with ${e.getMessage}")
         system.terminate()
+     }
   }
-
 }
