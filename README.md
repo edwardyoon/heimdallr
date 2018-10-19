@@ -37,7 +37,7 @@ Clone the repository and try to build with sbt:
 
 `% sbt run`
 
-To setup a websocket load balancer, you can use Apache2 HTTPD with proxy modules. Enable modules with the following command: `sudo a2enmod rewrite proxy proxy_http proxy_wstunnel proxy_balancer lbmethod_byrequests`
+To setup a websocket load balancer, you can use HAProxy or Apache2 HTTPD with proxy modules. If you need to support heavy concurrency, HAProxy is recommended. If you want to use Apache2, enable modules with the following command: `sudo a2enmod rewrite proxy proxy_http proxy_wstunnel proxy_balancer lbmethod_byrequests`
 
 And edit the virtual host file like below:
 

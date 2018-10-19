@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Heimdallr Chat Example</title>
+    <link rel="stylesheet" href="../../Desktop/examplecss.css">
+    <script>
+
+        var number = 0;
+        var socket = null;
+
+        function selectroom() {
+            number = document.getElementById('url').value;
+            console.log('socket choosed as number'+ number)
+        }
+
+        function join() {
+
+            //TODO Input your websocket ID
+            socket = new WebSocket('ws://13.125.124.240/' + number);
+
+            socket.onopen = function (event) {
+                var name = document.getElementById('name').value;
+                msg = {
+                    type: "join",
+                    id: name,
+                    date: Date.now(),
+                };
+                console.log("socket opened");
+                socket.send(JSON.stringify(msg));
+            };
+
+            socket.onmessage = function (event) {
+                var msg = JSON.parse(event.data);
+                var time = new Date(msg.date);
+                var name = msg.id;
+                var timeStr = time.toLocaleTimeString();
+                line = null;
+                var f = document.getElementById("chatbox").contentDocument;
+
+                switch (msg.type) {
+
+                    case"msg":
+                        var mes = msg.text;
+                        line = name + "..." + mes + "[" + timeStr + "]" + '<br>';
+                        f.writeln(line);
+                        break;
+
+                    case "join":
+                        var room = document.getElementById("url");
+                        var join = name + "..." + "joined in " + number + " room [" + timeStr + "]" + '<br>';
+                        f.writeln(join);
+                        break;
+
+                    case "leave":
+                        var line = +name + "..." + "left '['" + timeStr + ']' + '<br>';
+                        f.writeln(line);
+                        break;
+                }
+
+            };
+        }
+
+        socket.onerror = function (event) {
+            console.log("onerror");
+        };
+
+        socket.onclose = function (event) {
+            var name = document.getElementById('name').value;
+            msg = {
+                type: "leave",
+                id: name,
+                date: Date.now(),
+            };
+            socket.send(JSON.stringify(msg));
+            console.log("socket closed");
+        };
+
+        function leave() {
+            if (socket) {
+
+                socket.disconnect();
+                socket = null;
+            }
+            var name = document.getElementById('name').value;
+            console.log(name + 'left')
+        }
+
+        function send() {
+            var name = document.getElementById('name').value;
+            var mess = document.getElementById('text').value;
+
+            var msg = {
+                type: "msg",
+                id: name,
+                text: mess,
+                date: Date.now()
+            };
+            console.log("sending")
+            socket.send(JSON.stringify(msg));
+            document.getElementById("text").value = "";
+
+        }
+
+        function searchKeyPress(e) {
+            if (e.keyCode == 13) {
+                document.getElementById("send").click();
+                return false;
+            }
+            return true;
+        }
+
+    </script>
+
+</head>
+
+<div class="titleArea">
+    <h1> Heimdallr chat client sample</h1>
+
+    <p> Enter a room number:<input class="title" id="url" type="text" value="" autocomplete="off">
+        <button name="url" type="submit" value="submit-true" onclick="selectroom()">방 조인</button>
+
+    </p>
+
+    <p> Enter a name :<input class="usernameInput" id="name" type="text" value="" autocomplete="off">
+        <button name="join" type="submit" value="submit-true" onclick="join()">join</button>
+        <button name="leave" type="submit" value="submit-true" onclick="leave()">leave</button>
+    </p>
+</div>
+
+
+<div class="chatArea">
+    <iframe class="messages" id="chatbox"></iframe>
+</div>
+
+<input class="inputMessage" id="text" placeholder="Chat Message Here : Enter" autocomplete="off"
+       onkeypress="searchKeyPress(event)">
+
+
+<input class=inputbutton" name="submit" id="send" type="submit" onclick="send()" hidden/>
+
+
+</body>
+</html>
