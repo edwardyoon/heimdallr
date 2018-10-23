@@ -35,10 +35,12 @@ object Server {
   def main(args: Array[String]): Unit = {
 
     implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
-    implicit val materializer = ActorMaterializer()
+    implicit val materializer = ActorMaterializer() //materialize actor to access stream 
 
-    var chatRooms: Map[Int, ActorRef] = Map.empty[Int, ActorRef]
-
+    var chatRooms: Map[Int, ActorRef] = Map.empty[Int, ActorRef] //existing rooms 
+    //TODO: showing ChatRoom list to client 
+    
+    
     def newUser(chatRoomID: Int): Flow[Message, Message, NotUsed] = {
        // Gets chatroom actor reference
       val chatRoom = getChatRoomActorRef(chatRoomID)
@@ -50,6 +52,7 @@ object Server {
           // transform websocket message to domain message
           case TextMessage.Strict(text) => UserActor.IncomingMessage(text)
           // PoisonPill asynchronously stops disconnected user actor
+          //TODO : to deal with join, leave, text message types
         }.to(Sink.actorRef[UserActor.IncomingMessage](userActor, PoisonPill))
 
       val outgoingMessages: Source[Message, NotUsed] =
@@ -67,16 +70,19 @@ object Server {
     }
 
     def getChatRoomActorRef(number:Int): ActorRef = {
+      //create or get ChatRoom as an ActorRef
       chatRooms.getOrElse (number, createNewChatRoom (number) )
     }
 
     def createNewChatRoom(number: Int): ActorRef = {
+      //creates new ChatRoomActor and returns as an ActorRef
       val chatroom = system.actorOf(Props(new ChatRoomActor), "chat" + number)
       chatRooms += number -> chatroom
       chatroom
     }
 
     val route =
+      //adjustable depended on client url
       pathPrefix(IntNumber) {
         chatRoomID => {
           handleWebSocketMessages(newUser(chatRoomID))
@@ -87,6 +93,7 @@ object Server {
 
     // the rest of the sample code will go here
      binding.onComplete{
+       //binding success check 
       case Success(binding) =>
         val localAddress = binding.localAddress
         println(s"Server is listening on ${localAddress.getHostName}:${localAddress.getPort}")
