@@ -88,3 +88,6 @@ public class WSClientSample extends WebSocketClient {
   }
 }
 ```
+
+### Client Demo HTML example 
+To see demo of our project, you can use our ready-made websocket connected html file in Heimdallr/src/main/web.
