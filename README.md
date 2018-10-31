@@ -13,7 +13,7 @@ Heimdallr’s architecture consists of a HTTP Server, a ChatRoomActor, and an Us
 
 ## Comparison w/ Node.js and Socket.io 
 
-The HTTP server test below was done using the wrk benchmarking tool with 6 threads and 10000 connections on a single m4.large instance.
+The HTTP server test below was done using the [wrk benchmarking tool](https://github.com/wg/wrk) with 6 threads and 10000 connections on a single m4.large instance.
 
 |  | Node.js | Heimdallr | 
 | :--- | :--- | :--- |
