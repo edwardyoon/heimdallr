@@ -69,7 +69,7 @@ class ChatRoomActor extends Actor {
                 s.subscribe(rest.toString){m => }
             }
             
-          // TODO if message is coming from others, broadcast to locally connected users
+          // Broadcasts to locally connected users
           case x =>
             println("received message on channel " + channel + " as : " + x)
             users.foreach(_ ! ChatRoomActor.ChatMessage(x))
@@ -77,6 +77,11 @@ class ChatRoomActor extends Actor {
     }
   }
 
+  /**
+    * Receives messages from Server, and processes messages.
+    * 
+    * @return
+    */
   def receive = {
     case Join =>
       users += sender()
@@ -87,7 +92,7 @@ class ChatRoomActor extends Actor {
       users -= user
 
     case msg: ChatMessage =>
-      // sync local message with others
+      // publish message to all chatRoomActor that subscribes same chatRoomName
       p.publish(chatRoomName, msg.message);
   }
 }
