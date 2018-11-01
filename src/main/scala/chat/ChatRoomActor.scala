@@ -87,7 +87,7 @@ class ChatRoomActor extends Actor {
       users -= user
 
     case msg: ChatMessage =>
-      // sync local message with others
+      // sync local message with others - Issue #16
       p.publish(chatRoomName, msg.message);
   }
 }
