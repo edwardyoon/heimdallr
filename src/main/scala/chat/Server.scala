@@ -31,6 +31,9 @@ import com.typesafe.config.ConfigFactory
 import scala.util.{Failure,Success}
 import scala.concurrent.ExecutionContext.Implicits._
 
+/**
+  * The server that routes the messages incoming from outside to the destination actors.
+  */
 object Server {
   def main(args: Array[String]): Unit = {
 
