@@ -27,5 +27,6 @@ libraryDependencies ++= Seq(
   "com.typesafe.akka" %% "akka-http-experimental" % "2.4.4",
   "com.typesafe.scala-logging" % "scala-logging-slf4j_2.11" % "2.1.2",
   "com.typesafe.akka" % "akka-slf4j_2.11" % "2.4.1",
-  "net.debasishg" %% "redisclient" % "3.8"
+  "net.debasishg" %% "redisclient" % "3.8",
+  "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime
 )
