@@ -3,11 +3,9 @@ FROM openjdk:8
 
 # Env variables
 ENV SCALA_VERSION 2.11.8
-#ENV SBT_VERSION 1.2.6
 ENV SBT_VERSION 0.13.15
 
 # Install Scala
-## Piping curl directly in tar
 RUN \
   curl -fsL https://downloads.typesafe.com/scala/$SCALA_VERSION/scala-$SCALA_VERSION.tgz | tar xfz - -C /root/ && \
   echo >> /root/.bashrc && \
@@ -19,15 +17,15 @@ RUN \
   dpkg -i sbt-$SBT_VERSION.deb && \
   rm sbt-$SBT_VERSION.deb && \
   apt-get update && \
-  apt-get install sbt && \
-  sbt sbtVersion
+  apt-get install sbt
 
+# Setup Heimdallr
 WORKDIR /Heimdallr
 ADD . /Heimdallr
+RUN sbt test
 
-# Open port for heimdallr-server
-EXPOSE 8080
+# Open port for Heimdallr-Server ( Default : 8080 )
+EXPOSE 8080 8008 6379
 
-#CMD sbt -mem 48000 run &
+# Running Heimdallr-Server
 CMD sbt -mem 48000 run
-#RUN /bin/bash
