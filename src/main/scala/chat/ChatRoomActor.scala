@@ -28,6 +28,17 @@ object ChatRoomActor {
   case class ChatMessage(message: String)
 }
 
+/**
+  * The actor that is created for each chat room. Various kinds of messages
+  * that represent chat room-related events such as comment sending or delivery
+  * termination are all routed to this actor.
+  *
+  * ChatRoomActor is in charge of
+  * publishing comments to Redis or storing comments in Redis for comment
+  * synchronization between servers (more details on the following section).
+  *
+  * It also passes to UserActor all messages destined to the clients.
+  */
 class ChatRoomActor extends Actor {
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
@@ -68,8 +79,8 @@ class ChatRoomActor extends Actor {
               case Seq('+', rest @ _*)=>
                 s.subscribe(rest.toString){m => }
             }
-            
-          // TODO if message is coming from others, broadcast to locally connected users
+
+          // Passes to locally connected users
           case x =>
             println("received message on channel " + channel + " as : " + x)
             users.foreach(_ ! ChatRoomActor.ChatMessage(x))
@@ -77,6 +88,10 @@ class ChatRoomActor extends Actor {
     }
   }
 
+  /**
+    * Receives messages from Server, and synchronizes messages with others.
+    * @return nothing
+    */
   def receive = {
     case Join =>
       users += sender()
@@ -87,7 +102,7 @@ class ChatRoomActor extends Actor {
       users -= user
 
     case msg: ChatMessage =>
-      // sync local message with others - Issue #16
+      // publish message to all chatRoomActor that subscribes same chatRoomName
       p.publish(chatRoomName, msg.message);
   }
 }

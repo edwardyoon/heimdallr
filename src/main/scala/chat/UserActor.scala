@@ -26,6 +26,13 @@ object UserActor {
   case class OutgoingMessage(text: String)
 }
 
+/**
+  * The actor that is created for all users. This actor receives messages
+  * from ChatRoomActor and transmits payloads to the clients over a
+  * WebSocket connection.
+  *
+  * @param chatRoom chatRoomActor reference that I belongs to.
+  */
 class UserActor(chatRoom: ActorRef) extends Actor {
   implicit val executionContext: ExecutionContext = context.dispatcher
   import UserActor._

@@ -35,28 +35,28 @@
                 var time = new Date(msg.date);
                 var name = msg.id;
                 var timeStr = time.toLocaleTimeString();
-                line = null;
+                var line = null;
                 var f = document.getElementById("chatbox").contentDocument;
 
                 switch (msg.type) {
 
                     case"msg":
-                        var mes = msg.text;
-                        line = name + "..." + mes + "[" + timeStr + "]" + '<br>';
-                        f.writeln(line);
+                        line = `[ ${timeStr} ]( ${name} ) ${msg.text}<br>`;
                         break;
 
                     case "join":
-                        var room = document.getElementById("url");
-                        var join = name + "..." + "joined in " + number + " room [" + timeStr + "]" + '<br>';
-                        f.writeln(join);
+                        line = `[ ${timeStr} ]( ${name} ) joined in ${number} room<br>`;
                         break;
 
                     case "leave":
-                        var line = +name + "..." + "left '['" + timeStr + ']' + '<br>';
-                        f.writeln(line);
+                        line = `[ ${timeStr} ]( ${name} ) left room<br>`;
+                        break;
+
+                    default:
+                        line = `Error: unknown msg.type(${msg.type})<br>`;
                         break;
                 }
+                f.writeln(line);
 
             };
         }
@@ -78,27 +78,40 @@
 
         function leave() {
             if (socket) {
+                msg = {
+                    type: "leave",
+                    id: document.getElementById('name').value,
+                    date: Date.now(),
+                };
+                socket.send(JSON.stringify(msg));
+                console.log("socket closed");
 
-                socket.disconnect();
+                socket.close();
                 socket = null;
             }
-            var name = document.getElementById('name').value;
-            console.log(name + 'left')
+            else {
+                alert("Already connection closed");
+            }
         }
 
         function send() {
-            var name = document.getElementById('name').value;
-            var mess = document.getElementById('text').value;
+            if (socket) {
+                var name = document.getElementById('name').value;
+                var mess = document.getElementById('text').value;
 
-            var msg = {
-                type: "msg",
-                id: name,
-                text: mess,
-                date: Date.now()
-            };
-            console.log("sending")
-            socket.send(JSON.stringify(msg));
-            document.getElementById("text").value = "";
+                var msg = {
+                    type: "msg",
+                    id: name,
+                    text: mess,
+                    date: Date.now()
+                };
+                console.log("sending")
+                socket.send(JSON.stringify(msg));
+                document.getElementById("text").value = "";
+            }
+            else {
+                alert("Cannot find connection");
+            }
 
         }
 

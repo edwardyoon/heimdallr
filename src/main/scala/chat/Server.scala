@@ -31,6 +31,9 @@ import com.typesafe.config.ConfigFactory
 import scala.util.{Failure,Success}
 import scala.concurrent.ExecutionContext.Implicits._
 
+/**
+  * The server that routes the messages incoming from outside to the destination actors.
+  */
 object Server {
   def main(args: Array[String]): Unit = {
 
@@ -69,11 +72,21 @@ object Server {
       Flow.fromSinkAndSource(incomingMessages, outgoingMessages)
     }
 
+    /**
+      * @param number chatroom ID
+      * @return the reference of chatRoomActor of given number
+      */
     def getChatRoomActorRef(number:Int): ActorRef = {
       //create or get ChatRoom as an ActorRef
       chatRooms.getOrElse (number, createNewChatRoom (number) )
     }
 
+    /**
+      * Creates new chatroom actor and adds chatRooms map
+      *
+      * @param number chatroom ID
+      * @return the reference of newly created chatRoomActor
+      */
     def createNewChatRoom(number: Int): ActorRef = {
       //creates new ChatRoomActor and returns as an ActorRef
       val chatroom = system.actorOf(Props(new ChatRoomActor), "chat" + number)
