@@ -71,19 +71,6 @@ class ChatRoomActor extends Actor {
                ************************************************************/
               m.get("text").get match {
 
-                // Passes to locally connected users
-                case x =>
-                  println(s"received message on channel $channel as : $m")
-                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
-              }
-
-
-            case "user" =>
-              /************************************************************
-               * user chat message
-               ************************************************************/
-              m.get("text").get match {
-
                 case x if x startsWith "-" =>
                   val p : Seq[Char] = x
                   p match {
@@ -97,6 +84,19 @@ class ChatRoomActor extends Actor {
                     case Seq('+', rest @ _*)=>
                       s.subscribe(rest.toString){m => }
                   }
+
+                // Passes to locally connected users
+                case x =>
+                  println(s"received message on channel $channel as : $m")
+                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
+              }
+
+
+            case "user" =>
+              /************************************************************
+               * user chat message
+               ************************************************************/
+              m.get("text").get match {
 
                 // Passes to locally connected users
                 case x =>
