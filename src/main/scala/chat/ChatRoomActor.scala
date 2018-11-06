@@ -40,7 +40,7 @@ object ChatRoomActor {
   *
   * It also passes to UserActor all messages destined to the clients.
   */
-class ChatRoomActor extends Actor {
+class ChatRoomActor extends Actor with ActorLogging {
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
 
@@ -55,9 +55,9 @@ class ChatRoomActor extends Actor {
 
   s.subscribe(chatRoomName) { pubsub =>
     pubsub match {
-      case S(channel, no) => println("subscribed to " + channel + " and count = " + no)
-      case U(channel, no) => println("unsubscribed from " + channel + " and count = " + no)
-      case E(exception) => println(exception + "Fatal error caused consumer dead. " +
+      case S(channel, no) => log.info("subscribed to " + channel + " and count = " + no)
+      case U(channel, no) => log.info("unsubscribed from " + channel + " and count = " + no)
+      case E(exception) => log.info(exception + "Fatal error caused consumer dead. " +
         "Need to reconnecting to master or connect to backup")
 
       case M(channel, msg) =>
@@ -87,7 +87,7 @@ class ChatRoomActor extends Actor {
 
                 // Passes to locally connected users
                 case x =>
-                  println(s"received message on channel $channel as : $m")
+                  log.info(s"received message on channel $channel as : $m")
                   users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
               }
 
@@ -100,7 +100,7 @@ class ChatRoomActor extends Actor {
 
                 // Passes to locally connected users
                 case x =>
-                  println(s"received message on channel $channel as : $m")
+                  log.info(s"received message on channel $channel as : $m")
                   users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
               }
 
@@ -108,19 +108,19 @@ class ChatRoomActor extends Actor {
               /************************************************************
                * admin command
                ************************************************************/
-              println(s" # admin command: received message on channel $channel as : $m")
+              log.info(s" # admin command: received message on channel $channel as : $m")
 
               m.get("text").get match {
 
                 case "exit" =>
-                  println("unsubscribe all ..")
+                  log.info("unsubscribe all ..")
                   s.unsubscribe
 
                 case _ =>
-                  println(s"Unknown command")
+                  log.info(s"Unknown command")
               }
             case x =>
-              println(s"Unknown command [$x]")
+              log.info(s"Unknown command [$x]")
           }
         }
     }
@@ -141,7 +141,7 @@ class ChatRoomActor extends Actor {
 
     case msg: ChatMessage =>
       // publish message to all chatRoomActor that subscribes same chatRoomName
-      println(msg.message)
+      log.info("publish message to chanel: " + chatRoomName)
       p.publish(chatRoomName, msg.message);
   }
 }

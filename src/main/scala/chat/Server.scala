@@ -23,7 +23,7 @@ import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.stream._
 import akka.stream.scaladsl._
-
+import akka.actor.ActorLogging
 
 import com.typesafe.config.ConfigFactory
 import scala.util.{Failure,Success}
