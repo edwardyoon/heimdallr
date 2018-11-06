@@ -16,13 +16,19 @@
 
         function join() {
 
+            if (socket) {
+                alert("Already connection opened");
+                return;
+            }
+
             //TODO Input your websocket ID
             socket = new WebSocket('ws://13.125.124.240/' + number);
 
             socket.onopen = function (event) {
                 var name = document.getElementById('name').value;
                 msg = {
-                    type: "join",
+                    type: "system",
+                    text:"join",
                     id: name,
                     date: Date.now(),
                 };
@@ -40,16 +46,21 @@
 
                 switch (msg.type) {
 
-                    case"msg":
+                    case"user":
+                    case"admin":
                         line = `[ ${timeStr} ]( ${name} ) ${msg.text}<br>`;
                         break;
 
-                    case "join":
-                        line = `[ ${timeStr} ]( ${name} ) joined in ${number} room<br>`;
-                        break;
+                    case "system":
+                        switch(msg.text) {
+                            case "join":
+                                line = `[ ${timeStr} ]( ${name} ) joined in ${number} room<br>`;
+                                break;
 
-                    case "leave":
-                        line = `[ ${timeStr} ]( ${name} ) left room<br>`;
+                            case "leave":
+                                line = `[ ${timeStr} ]( ${name} ) left room<br>`;
+                                break;
+                        }
                         break;
 
                     default:
@@ -59,30 +70,39 @@
                 f.writeln(line);
 
             };
+
+            socket.onerror = function (event) {
+                console.log("onerror");
+            };
+
+            socket.onclose = function (event) {
+                var name = document.getElementById('name').value;
+                msg = {
+                    type: "system",
+                    text: "leave",
+                    id: name,
+                    date: Date.now(),
+                };
+                socket.send(JSON.stringify(msg));
+                console.log("socket closed");
+            };
         }
 
-        socket.onerror = function (event) {
-            console.log("onerror");
-        };
-
-        socket.onclose = function (event) {
-            var name = document.getElementById('name').value;
-            msg = {
-                type: "leave",
-                id: name,
-                date: Date.now(),
-            };
-            socket.send(JSON.stringify(msg));
-            console.log("socket closed");
-        };
 
         function leave() {
             if (socket) {
                 msg = {
-                    type: "leave",
+                    type: "system",
+                    text: "leave",
                     id: document.getElementById('name').value,
                     date: Date.now(),
                 };
+
+                var time = new Date(msg.date);
+                var f = document.getElementById("chatbox").contentDocument;
+                line = `[ ${time.toLocaleTimeString()} ]( ${msg.id} ) left room<br>`;
+                f.writeln(line);
+
                 socket.send(JSON.stringify(msg));
                 console.log("socket closed");
 
@@ -100,7 +120,7 @@
                 var mess = document.getElementById('text').value;
 
                 var msg = {
-                    type: "msg",
+                    type: "user",
                     id: name,
                     text: mess,
                     date: Date.now()

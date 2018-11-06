@@ -22,6 +22,7 @@ import com.redis.{RedisClient, PubSubMessage, S, U, E, M}
 import scala.concurrent.ExecutionContext
 import com.redis.RedisClient
 import com.typesafe.config.ConfigFactory
+import scala.util.parsing.json._
 
 object ChatRoomActor {
   case object Join
@@ -60,30 +61,67 @@ class ChatRoomActor extends Actor {
         "Need to reconnecting to master or connect to backup")
 
       case M(channel, msg) =>
-        msg match {
-          // exit will unsubscribe from all channels and stop subscription service
-          case "exit" =>
-            println("unsubscribe all ..")
-            s.unsubscribe
 
-          case x if x startsWith "-" =>
-            val p : Seq[Char] = x
-            p match {
-              case Seq('-', rest @ _*)=>
-                s.unsubscribe(rest.toString)
-            }
+        var obj = JSON.parseFull(msg) // FIXME. Are you json ?
+        obj match {
+          case Some(m: Map[String, String]) => m.get("type").get match {
+            case "system" =>
+              /************************************************************
+               * system message
+               ************************************************************/
+              m.get("text").get match {
 
-          case x if x startsWith "+" =>
-            val p : Seq[Char] = x
-            p match {
-              case Seq('+', rest @ _*)=>
-                s.subscribe(rest.toString){m => }
-            }
+                case x if x startsWith "-" =>
+                  val p : Seq[Char] = x
+                  p match {
+                    case Seq('-', rest @ _*)=>
+                      s.unsubscribe(rest.toString)
+                  }
 
-          // Passes to locally connected users
-          case x =>
-            println("received message on channel " + channel + " as : " + x)
-            users.foreach(_ ! ChatRoomActor.ChatMessage(x))
+                case x if x startsWith "+" =>
+                  val p : Seq[Char] = x
+                  p match {
+                    case Seq('+', rest @ _*)=>
+                      s.subscribe(rest.toString){m => }
+                  }
+
+                // Passes to locally connected users
+                case x =>
+                  println(s"received message on channel $channel as : $m")
+                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
+              }
+
+
+            case "user" =>
+              /************************************************************
+               * user chat message
+               ************************************************************/
+              m.get("text").get match {
+
+                // Passes to locally connected users
+                case x =>
+                  println(s"received message on channel $channel as : $m")
+                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
+              }
+
+            case "admin" =>
+              /************************************************************
+               * admin command
+               ************************************************************/
+              println(s" # admin command: received message on channel $channel as : $m")
+
+              m.get("text").get match {
+
+                case "exit" =>
+                  println("unsubscribe all ..")
+                  s.unsubscribe
+
+                case _ =>
+                  println(s"Unknown command")
+              }
+            case x =>
+              println(s"Unknown command [$x]")
+          }
         }
     }
   }
