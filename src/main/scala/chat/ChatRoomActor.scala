@@ -141,6 +141,7 @@ class ChatRoomActor extends Actor {
 
     case msg: ChatMessage =>
       // publish message to all chatRoomActor that subscribes same chatRoomName
+      println(msg.message)
       p.publish(chatRoomName, msg.message);
   }
 }
