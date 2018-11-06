@@ -24,9 +24,7 @@ import akka.http.scaladsl.server.Directives._
 import akka.stream._
 import akka.stream.scaladsl._
 
-import scala.concurrent.duration._
-import scala.concurrent.Await
-import scala.io.StdIn
+
 import com.typesafe.config.ConfigFactory
 import scala.util.{Failure,Success}
 import scala.concurrent.ExecutionContext.Implicits._
@@ -40,10 +38,9 @@ object Server {
     implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
     implicit val materializer = ActorMaterializer() //materialize actor to access stream 
 
-    var chatRooms: Map[Int, ActorRef] = Map.empty[Int, ActorRef] //existing rooms 
+    var chatRooms: Map[Int, ActorRef] = Map.empty[Int, ActorRef] //existing rooms
     //TODO: showing ChatRoom list to client 
-    
-    
+
     def newUser(chatRoomID: Int): Flow[Message, Message, NotUsed] = {
        // Gets chatroom actor reference
       val chatRoom = getChatRoomActorRef(chatRoomID)
@@ -78,7 +75,9 @@ object Server {
       */
     def getChatRoomActorRef(number:Int): ActorRef = {
       //create or get ChatRoom as an ActorRef
-      chatRooms.getOrElse (number, createNewChatRoom (number) )
+      this.synchronized {
+        chatRooms.getOrElse(number, createNewChatRoom(number))
+      }
     }
 
     /**
