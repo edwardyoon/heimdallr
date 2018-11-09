@@ -45,6 +45,8 @@ class ChatRoomActor extends Actor with ActorLogging {
   implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
 
   import ChatRoomActor._
+  // TODO: We may want to manage user name.
+  // Then, Map data structure can be used, instead of Set.
   var users: Set[ActorRef] = Set.empty
 
   val chatRoomName = self.path.name
