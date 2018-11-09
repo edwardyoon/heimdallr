@@ -62,6 +62,9 @@ class ChatRoomActor extends Actor with ActorLogging {
 
       case M(channel, msg) =>
 
+        // TODO: before parsing message, we need to validate JSON data.
+        // also, we may want to support also non-JSON data
+      
         var obj = JSON.parseFull(msg) // FIXME. Are you json ?
         obj match {
           case Some(m: Map[String, String]) => m.get("type").get match {
