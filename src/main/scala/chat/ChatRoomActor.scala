@@ -22,6 +22,7 @@ import com.redis.{RedisClient, PubSubMessage, S, U, E, M}
 import scala.concurrent.ExecutionContext
 import com.redis.RedisClient
 import com.typesafe.config.ConfigFactory
+import scala.util.parsing.json._
 
 object ChatRoomActor {
   case object Join
@@ -39,11 +40,13 @@ object ChatRoomActor {
   *
   * It also passes to UserActor all messages destined to the clients.
   */
-class ChatRoomActor extends Actor {
+class ChatRoomActor extends Actor with ActorLogging {
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
 
   import ChatRoomActor._
+  // TODO: We may want to manage user name.
+  // Then, Map data structure can be used, instead of Set.
   var users: Set[ActorRef] = Set.empty
 
   val chatRoomName = self.path.name
@@ -54,36 +57,76 @@ class ChatRoomActor extends Actor {
 
   s.subscribe(chatRoomName) { pubsub =>
     pubsub match {
-      case S(channel, no) => println("subscribed to " + channel + " and count = " + no)
-      case U(channel, no) => println("unsubscribed from " + channel + " and count = " + no)
-      case E(exception) => println(exception + "Fatal error caused consumer dead. " +
+      case S(channel, no) => log.info("subscribed to " + channel + " and count = " + no)
+      case U(channel, no) => log.info("unsubscribed from " + channel + " and count = " + no)
+      case E(exception) => log.info(exception + "Fatal error caused consumer dead. " +
         "Need to reconnecting to master or connect to backup")
 
       case M(channel, msg) =>
-        msg match {
-          // exit will unsubscribe from all channels and stop subscription service
-          case "exit" =>
-            println("unsubscribe all ..")
-            s.unsubscribe
 
-          case x if x startsWith "-" =>
-            val p : Seq[Char] = x
-            p match {
-              case Seq('-', rest @ _*)=>
-                s.unsubscribe(rest.toString)
-            }
+        // TODO: before parsing message, we need to validate JSON data.
+        // also, we may want to support also non-JSON data
+      
+        var obj = JSON.parseFull(msg) // FIXME. Are you json ?
+        obj match {
+          case Some(m: Map[String, String]) => m.get("type").get match {
+            case "system" =>
+              /************************************************************
+               * system message
+               ************************************************************/
+              m.get("text").get match {
 
-          case x if x startsWith "+" =>
-            val p : Seq[Char] = x
-            p match {
-              case Seq('+', rest @ _*)=>
-                s.subscribe(rest.toString){m => }
-            }
+                case x if x startsWith "-" =>
+                  val p : Seq[Char] = x
+                  p match {
+                    case Seq('-', rest @ _*)=>
+                      s.unsubscribe(rest.toString)
+                  }
 
-          // Passes to locally connected users
-          case x =>
-            println("received message on channel " + channel + " as : " + x)
-            users.foreach(_ ! ChatRoomActor.ChatMessage(x))
+                case x if x startsWith "+" =>
+                  val p : Seq[Char] = x
+                  p match {
+                    case Seq('+', rest @ _*)=>
+                      s.subscribe(rest.toString){m => }
+                  }
+
+                // Passes to locally connected users
+                case x =>
+                  log.info(s"received message on channel $channel as : $m")
+                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
+              }
+
+
+            case "user" =>
+              /************************************************************
+               * user chat message
+               ************************************************************/
+              m.get("text").get match {
+
+                // Passes to locally connected users
+                case x =>
+                  log.info(s"received message on channel $channel as : $m")
+                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
+              }
+
+            case "admin" =>
+              /************************************************************
+               * admin command
+               ************************************************************/
+              log.info(s" # admin command: received message on channel $channel as : $m")
+
+              m.get("text").get match {
+
+                case "exit" =>
+                  log.info("unsubscribe all ..")
+                  s.unsubscribe
+
+                case _ =>
+                  log.info(s"Unknown command")
+              }
+            case x =>
+              log.info(s"Unknown command [$x]")
+          }
         }
     }
   }
@@ -103,6 +146,7 @@ class ChatRoomActor extends Actor {
 
     case msg: ChatMessage =>
       // publish message to all chatRoomActor that subscribes same chatRoomName
+      log.info("publish message to chanel: " + chatRoomName)
       p.publish(chatRoomName, msg.message);
   }
 }

@@ -46,9 +46,11 @@ class UserActor(chatRoom: ActorRef) extends Actor {
     chatRoom ! ChatRoomActor.Join
 
     {
+      // passes incoming text as a chat message to chatroom actor
       case IncomingMessage(text) =>
         chatRoom ! ChatRoomActor.ChatMessage(text)
 
+      // delivers outgoing messasge to client
       case ChatRoomActor.ChatMessage(text) =>
         outgoing ! OutgoingMessage(text)
     }
