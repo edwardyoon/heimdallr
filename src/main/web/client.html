@@ -27,9 +27,9 @@
             socket.onopen = function (event) {
                 var name = document.getElementById('name').value;
                 msg = {
-                    type: "system",
+                    msgType: "system",
                     text:"join",
-                    id: name,
+                    userId: name,
                     date: Date.now(),
                 };
                 console.log("socket opened");
@@ -39,12 +39,12 @@
             socket.onmessage = function (event) {
                 var msg = JSON.parse(event.data);
                 var time = new Date(msg.date);
-                var name = msg.id;
+                var name = msg.userId;
                 var timeStr = time.toLocaleTimeString();
                 var line = null;
                 var f = document.getElementById("chatbox").contentDocument;
 
-                switch (msg.type) {
+                switch (msg.msgType) {
 
                     case"user":
                     case"admin":
@@ -64,7 +64,7 @@
                         break;
 
                     default:
-                        line = `Error: unknown msg.type(${msg.type})<br>`;
+                        line = `Error: unknown msg.msgType(${msg.msgType})<br>`;
                         break;
                 }
                 f.writeln(line);
@@ -78,9 +78,9 @@
             socket.onclose = function (event) {
                 var name = document.getElementById('name').value;
                 msg = {
-                    type: "system",
+                    msgType: "system",
                     text: "leave",
-                    id: name,
+                    userId: name,
                     date: Date.now(),
                 };
                 socket.send(JSON.stringify(msg));
@@ -92,9 +92,9 @@
         function leave() {
             if (socket) {
                 msg = {
-                    type: "system",
+                    msgType: "system",
                     text: "leave",
-                    id: document.getElementById('name').value,
+                    MsgId: document.getElementById('name').value,
                     date: Date.now(),
                 };
 
@@ -120,8 +120,8 @@
                 var mess = document.getElementById('text').value;
 
                 var msg = {
-                    type: "user",
-                    id: name,
+                    msgType: "user",
+                    userId: name,
                     text: mess,
                     date: Date.now()
                 };

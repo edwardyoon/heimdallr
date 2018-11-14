@@ -22,7 +22,6 @@ import com.redis.{RedisClient, PubSubMessage, S, U, E, M}
 import scala.concurrent.ExecutionContext
 import com.redis.RedisClient
 import com.typesafe.config.ConfigFactory
-import scala.util.parsing.json._
 
 object ChatRoomActor {
   case object Join
@@ -62,72 +61,7 @@ class ChatRoomActor extends Actor with ActorLogging {
       case E(exception) => log.info(exception + "Fatal error caused consumer dead. " +
         "Need to reconnecting to master or connect to backup")
 
-      case M(channel, msg) =>
-
-        // TODO: before parsing message, we need to validate JSON data.
-        // also, we may want to support also non-JSON data
-      
-        var obj = JSON.parseFull(msg) // FIXME. Are you json ?
-        obj match {
-          case Some(m: Map[String, String]) => m.get("type").get match {
-            case "system" =>
-              /************************************************************
-               * system message
-               ************************************************************/
-              m.get("text").get match {
-
-                case x if x startsWith "-" =>
-                  val p : Seq[Char] = x
-                  p match {
-                    case Seq('-', rest @ _*)=>
-                      s.unsubscribe(rest.toString)
-                  }
-
-                case x if x startsWith "+" =>
-                  val p : Seq[Char] = x
-                  p match {
-                    case Seq('+', rest @ _*)=>
-                      s.subscribe(rest.toString){m => }
-                  }
-
-                // Passes to locally connected users
-                case x =>
-                  log.info(s"received message on channel $channel as : $m")
-                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
-              }
-
-
-            case "user" =>
-              /************************************************************
-               * user chat message
-               ************************************************************/
-              m.get("text").get match {
-
-                // Passes to locally connected users
-                case x =>
-                  log.info(s"received message on channel $channel as : $m")
-                  users.foreach(_ ! ChatRoomActor.ChatMessage(msg))
-              }
-
-            case "admin" =>
-              /************************************************************
-               * admin command
-               ************************************************************/
-              log.info(s" # admin command: received message on channel $channel as : $m")
-
-              m.get("text").get match {
-
-                case "exit" =>
-                  log.info("unsubscribe all ..")
-                  s.unsubscribe
-
-                case _ =>
-                  log.info(s"Unknown command")
-              }
-            case x =>
-              log.info(s"Unknown command [$x]")
-          }
-        }
+      case M(channel, msg) => MessageHandler.processing(users, msg)
     }
   }
 
