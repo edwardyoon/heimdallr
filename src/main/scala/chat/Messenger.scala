@@ -14,20 +14,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package chat
 
-scalaVersion := "2.11.8"
-val akkaVersion = "2.5.16"
-val akkaHTTPVersion = "10.1.4"
+import akka.actor.ActorRef
 
-libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-core" % akkaHTTPVersion,
+object Messenger {
 
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.4",
-  "com.typesafe.scala-logging" % "scala-logging-slf4j_2.11" % "2.1.2",
-  "com.typesafe.akka" % "akka-slf4j_2.11" % "2.4.1",
-  "net.debasishg" %% "redisclient" % "3.8",
-  "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime,
-  "io.spray" %%  "spray-json" % "1.3.4"
-)
+  def broadcast(roomUsers: Set[ActorRef], msg: String): Unit = {
+    roomUsers.foreach(_ ! ChatRoomActor.ChatMessage(msg))
+  }
+}

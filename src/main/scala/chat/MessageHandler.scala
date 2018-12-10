@@ -14,20 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+package chat
 
-scalaVersion := "2.11.8"
-val akkaVersion = "2.5.16"
-val akkaHTTPVersion = "10.1.4"
+import akka.actor.ActorRef
+import akka.actor.ActorSystem
+import com.typesafe.config.ConfigFactory
 
-libraryDependencies ++= Seq(
-  "com.typesafe.akka" %% "akka-actor" % akkaVersion,
-  "com.typesafe.akka" %% "akka-stream" % akkaVersion,
-  "com.typesafe.akka" %% "akka-http-core" % akkaHTTPVersion,
+/**
+  * This object manages message processing.
+  * Define the required protocol and use it.
+  */
+object MessageHandler {
 
-  "com.typesafe.akka" %% "akka-http-experimental" % "2.4.4",
-  "com.typesafe.scala-logging" % "scala-logging-slf4j_2.11" % "2.1.2",
-  "com.typesafe.akka" % "akka-slf4j_2.11" % "2.4.1",
-  "net.debasishg" %% "redisclient" % "3.8",
-  "ch.qos.logback" % "logback-classic" % "1.1.3" % Runtime,
-  "io.spray" %%  "spray-json" % "1.3.4"
-)
+  implicit val system = ActorSystem("heimdallr", ConfigFactory.load())
+  val clazz = Class.forName(system.settings.config.getString("akka.message.protocol")).newInstance().asInstanceOf[Protocol]
+
+  def processing(roomUsers: Set[ActorRef], msg: String) = clazz.protocol(roomUsers, msg)
+}
