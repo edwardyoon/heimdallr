@@ -1,10 +1,10 @@
 # Heimdallr 
  
-Heimdallr is a large-scale chat application server inspired by the LINE+ chatting service architecture and written in Scala language based on Akka's actor model. It provides fault-tolerant and reliable scaling-out options, based on Redis Pubsub to support expansion from proof-of-concept to enterprise-ready solutions. It has been tested to be at least 100x faster than socket.io for large-scale systems. This project is licensed under the Apache License v2.0.
+Heimdallr is a large-scale chat application server inspired by the LINE+ chatting service architecture and written in Scala language based on Akka's actor model. It provides fault-tolerant and reliable scaling-out options, based on Redis Pubsub to support expansion from proof-of-concept to enterprise-ready solutions. It has been tested to be at least 100x faster than socket.io for large-scale systems. Heimdallr is currently powered by *real-world production of Spoon Radio* and supporting heavy simultaneous connections. This project is licensed under the Apache License v2.0.
 
 ## Architecture
 
-Heimdallr’s architecture consists of a HTTP Server, a ChatRoomActor, and an UserActor. Each ChatRoom can be distributed across multiple servers. To synchronize the messages among servers, we uses Redis PubSub. UserActor is created per every websocket client.
+Heimdallr’s architecture consists of a Akka HTTP Server, Streams and ChatRoomActor, UserActor, AggregationActor. Each ChatRoom can be distributed across multiple servers. To synchronize the messages among servers, we uses Redis PubSub. UserActor is created per every websocket client.
 
 ### Supervisor Hierarchies
 
