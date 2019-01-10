@@ -11,7 +11,7 @@ Heimdallr’s architecture consists of a HTTP Server, a ChatRoomActor, and an Us
 TODO:
 
 <p align="center">
-  <img width="85%" src="https://raw.githubusercontent.com/edwardyoon/Heimdallr/master/project/architecture.png">
+  <img width="85%" src="https://raw.githubusercontent.com/edwardyoon/Heimdallr/master/project/s.png">
 </p>
 
 
