@@ -17,11 +17,9 @@
 package chat
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, ActorSystem, Identify, OneForOneStrategy, Props}
 import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume, Stop}
 import chat.EventConstants.{HeimdallrStart, HeimdallrView, RegActor, StopActor}
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import EventConstants._
@@ -31,7 +29,6 @@ object environment {
   var aggregator: ActorRef = null
   var version = ""
   var envType = ""
-  var apiServerAddr = ""
 
   def getHeimdallrSystem() = {
     system
@@ -43,10 +40,6 @@ object environment {
 
   def getEnvType() = {
     envType
-  }
-
-  def getApiServer(): String = {
-    apiServerAddr
   }
 }
 
@@ -77,7 +70,6 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
       environment.setEnvType(env)
       environment.system = system
       environment.version = system.settings.config.getString("akka.heimdallr-version" )
-      environment.apiServerAddr = system.settings.config.getString(s"akka.environment.${environment.envType}.api-server")
       environment.aggregator = context.actorOf(Props[Aggregator], "aggregator")
       context.watch(environment.aggregator)
       hs = context.actorOf(Props[HealthyService], "hs")

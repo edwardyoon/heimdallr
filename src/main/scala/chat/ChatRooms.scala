@@ -19,18 +19,17 @@ package chat
 import akka.actor.ActorRef
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
+import akka.pattern.ask
+import akka.util.Timeout
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
 import org.json4s._
 import org.json4s.{DefaultFormats, JValue}
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
 import org.json4s.jackson.JsonMethods._
-import akka.pattern.ask
-import akka.util.Timeout
-
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 

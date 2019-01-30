@@ -8,10 +8,11 @@
 
         var number = 0;
         var socket = null;
+        var serverAddr = 'ws://127.0.0.1:8000/';
 
         function selectroom() {
             number = document.getElementById('url').value;
-            console.log('ws://13.125.124.240/' + number)
+            console.log(serverAddr + number)
         }
 
         function join() {
@@ -22,7 +23,7 @@
             }
 
             //TODO Input your websocket ID
-            socket = new WebSocket('ws://13.125.124.240/' + number);
+            socket = new WebSocket(serverAddr + number);
 
             socket.onopen = function (event) {
                 var name = document.getElementById('name').value;

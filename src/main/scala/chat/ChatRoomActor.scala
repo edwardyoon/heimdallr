@@ -19,17 +19,16 @@ package chat
 import java.util.concurrent.TimeUnit
 
 import akka.actor._
+import akka.pattern.gracefulStop
 import com.redis.{E, M, PubSubMessage, RedisClient, S, U}
 import com.redis.RedisClient
 import com.typesafe.config.ConfigFactory
-
 import scala.concurrent.ExecutionContext
 import scala.collection.mutable.ListBuffer
-import chat.ChatRooms.UserInfo
-import EventConstants._
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import akka.pattern.gracefulStop
+import chat.ChatRooms.UserInfo
+import EventConstants._
 
 object ChatRoomActor {
   case object Join
