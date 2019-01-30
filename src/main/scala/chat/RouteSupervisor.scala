@@ -17,11 +17,9 @@
 package chat
 
 import java.util.concurrent.TimeUnit
-
 import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, ActorSystem, Identify, OneForOneStrategy, Props}
 import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume, Stop}
 import chat.EventConstants.{HeimdallrStart, HeimdallrView, RegActor, StopActor}
-
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import EventConstants._

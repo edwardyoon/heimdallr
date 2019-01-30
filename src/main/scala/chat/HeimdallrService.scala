@@ -29,16 +29,6 @@ object Heimdallr extends App {
     val supervisor = heimdallrSystem.actorOf(Props(new RouteSupervisor(heimdallrSystem)), "Supervisor")
 
     supervisor ! HeimdallrStart(args)
-
-  /** for Debug 
-    *
-    Thread.sleep(1000)
-    supervisor ! HeimdallrView
-    Thread.sleep(1000)
-
-    heimdallrSystem.actorSelection("akka://heimdallr/user/Supervisor/ws") ! HeimdallrError
-    heimdallrSystem.actorSelection("akka://heimdallr/user/Supervisor/cs") ! HeimdallrChatStatus
-  */
   }
 }
 

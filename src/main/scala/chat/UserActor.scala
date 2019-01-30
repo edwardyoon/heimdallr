@@ -16,18 +16,16 @@
  */
 package chat
 
-import java.util.concurrent.TimeUnit
 import akka.actor._
+import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
-import EventConstants._
-
-import akka.pattern.ask
-import akka.util.Timeout
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-
+import akka.pattern.ask
+import akka.util.Timeout
+import EventConstants._
 
 object UserActor {
   case class Connected(outgoing: ActorRef)
