@@ -14,41 +14,97 @@
    limitations under the License.
 -->
 <configuration>
-
+//debug mode configuration
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <target>System.out</target>
         <encoder>
-            <pattern>%X{akkaTimestamp} %-5level[%thread] %logger{0} - %msg%n</pattern>
+            <pattern>%date %level %msg%n</pattern>
         </encoder>
     </appender>
 
-    <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>logs/heimdallr.log</file>
-        <append>true</append>
-        <encoder>
-            <pattern>%date{yyyy-MM-dd} %X{akkaTimestamp} %-5level[%thread] %logger{1} - %msg%n</pattern>
-        </encoder>
-    </appender>
-
-    <logger name="akka" level="DEBUG" />
-
-    <root level="DEBUG">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-    </root>
-
-    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>logs/heimdallr.log</file>
+   <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/heimdallr.total.log</file>
         <encoder>
             <pattern>%date %level %msg%n</pattern>
         </encoder>
-        <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
-            <maxIndex>10</maxIndex>
-            <FileNamePattern>logs/heimdallr.log.%i.gz</FileNamePattern>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+             <!-- hourly rollover with compression -->
+            <fileNamePattern>logs/heimdallr.total.log-%d{yyyy-MM-dd.HH}.gz</fileNamePattern>
+            <!-- keep 1 week worth of history -->
+            <maxHistory>100</maxHistory>
         </rollingPolicy>
-        <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
-            <maxFileSize>1000MB</maxFileSize>
-        </triggeringPolicy>
     </appender>
 
+    <appender name="ERROR" class="ch.qos.logback.core.FileAppender">
+        <file>logs/heimdallr.error.log</file>
+        <append>true</append>
+        <encoder>
+            <pattern>%date %level %msg %n</pattern>
+        </encoder>
+           <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- hourly rollover with compression -->
+            <fileNamePattern>logs/heimdallr.error.log-%d{yyyy-ww}.gz</fileNamePattern>
+            <!-- keep 1 week worth of history -->
+            <maxHistory>100</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>Error</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <appender name="INFO" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/heimdallr.message.log</file>
+        <encoder>
+            <pattern>%date %level %msg%n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+             <!-- hourly rollover with compression -->
+            <fileNamePattern>logs/heimdallr.message.log-%d{yyyy-MM-dd.HH}.gz</fileNamePattern>
+            <!-- keep 1 week worth of history -->
+            <maxHistory>100</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <appender name="INFO2" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>logs/heimdallr.failover.log</file>
+        <encoder>
+            <pattern>%date %level %msg %n</pattern>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- hourly rollover with compression -->
+            <fileNamePattern>logs/heimdallr.failover.log-%d{yyyy-MM-dd.HH}.gz</fileNamePattern>
+            <!-- keep 1 week worth of history -->
+            <maxHistory>100</maxHistory>
+        </rollingPolicy>
+        <filter class="ch.qos.logback.classic.filter.LevelFilter">
+            <level>INFO</level>
+            <onMatch>ACCEPT</onMatch>
+            <onMismatch>DENY</onMismatch>
+        </filter>
+    </appender>
+
+    <logger name="akka" level="OFF" />
+    <logger name="com.redis" level="OFF" />
+    <logger name="chat" level="DEBUG">
+        <appender-ref ref="FILE"/>
+    </logger>
+    <logger name="failover" level="DEBUG">
+        <appender-ref ref="INFO2"/>
+    </logger>
+
+     <root>
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ERROR"/>
+        <appender-ref ref="INFO"/>       
+      
+    </root>
+
 </configuration>
+
