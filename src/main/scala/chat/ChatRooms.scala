@@ -16,37 +16,196 @@
  */
 package chat
 
-import akka.actor.{ActorRef, ActorSystem, Props}
+import akka.actor.ActorRef
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
+import akka.http.scaladsl.server.Directives._
+import org.json4s._
+import org.json4s.{DefaultFormats, JValue}
+import org.json4s.jackson.Serialization
+import org.json4s.jackson.Serialization.write
+import org.json4s.jackson.JsonMethods._
+import akka.pattern.ask
+import akka.util.Timeout
+
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+
+import chat.EventConstants.{AggregatorCollectionToStats, AggregatorRoomValueToStats, AggregatorValueToStats, AggregatorView}
+import org.slf4j.LoggerFactory
 
 /**
-  * This object manages a list of locally created chat rooms
+  * This object manages multiple chat rooms
   */
 object ChatRooms {
+  implicit val timeout = Timeout(3 seconds)
+  implicit val formats = Serialization.formats(NoTypeHints)
 
-  var chatRooms: Map[Int, ActorRef] = Map.empty[Int, ActorRef] //existing rooms
+  // Map that contains existing chatRoom actor reference with ID
+  var chatRooms: mutable.Map[Int, ActorRef] = mutable.Map.empty[Int, ActorRef]
 
-  /**
-    * @param number chatroom ID
-    * @return the reference of chatRoomActor of given number
+  var roomUsers: mutable.Map[Int, ListBuffer[UserInfo]] = mutable.Map.empty[Int, ListBuffer[UserInfo]] //<- member
+  var roomStats: mutable.Map[Int, Int] = mutable.Map.empty[Int, Int]  //<- guest + member
+  var guestCount: mutable.Map[Int, Int] = mutable.Map.empty[Int, Int]
+  var memberCount: mutable.Map[Int, Int] = mutable.Map.empty[Int, Int]
+
+  var roomTotalCount: Int = 0
+  var memberTotalCount: Int = 0
+  var guestTotalCount: Int = 0
+  var onceRoomTotalCount: Int = 0
+  var onceMemberTotalCount: Int = 0
+  var onceGuestTotalCount: Int = 0
+
+  // Node Information
+  var hostName: String = null
+  var port: Int = 0
+
+  // periodically update the block terms.
+  var terms = List[String]()
+
+  case class UserInfo(id: Int, nick: String)
+  case class Data(protocol: String, host: String)
+  case class StatsAll(ts: String, node: String, count: mutable.Map[Int, Int], rooms: mutable.Map[Int, ListBuffer[UserInfo]])
+  case class StatsRooms(ts: String, node: String, rooms: mutable.Map[Int, ListBuffer[UserInfo]])
+  case class StatsRoomUsers(ts: String, node: String, prop: String, users: ListBuffer[UserInfo])
+  case class StatsCount(ts: String, node: String, count: mutable.Map[Int, Int])
+  case class StatsTotal(ts: String, node: String, prop: String, total: Int, member: Int, guest: Int)
+  case class StatsReason(ts: String, node: String, reason: String)
+
+  def getCurrentDateTime(): String = {
+    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm").format(LocalDateTime.now)
+  }
+
+  def getCurrentDateTimeSec(): String = {
+    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(LocalDateTime.now)
+  }
+
+  def RoomMemberInfor(chatRoomID: Int): String = {
+    /* TODO ...
+    var users = roomUsers.getOrElse(chatRoomID, null)
+    if( users == null )
+      RespReason( s"R#${chatRoomID} does not exgist !" )
+    else write(
+      StatsRoomUsers(
+        ts    = getCurrentDateTime(),
+        node  = hostName,
+        prop  = chatRoomID.toString,
+        users = roomUsers.getOrElse(chatRoomID, null)
+      )
+    )
     */
-  def getChatRoomActorRef(system: ActorSystem, number:Int): ActorRef = {
-    //create or get ChatRoom as an ActorRef
+    RespReason( s"TODO ..." )
+  }
+
+  def collectionEmpty = {
+    roomStats = mutable.Map.empty[Int, Int]  //<- guest + member
+    guestCount = mutable.Map.empty[Int, Int]
+    memberCount = mutable.Map.empty[Int, Int]
+  }
+
+  def CountRoomsTerm(term: String): String = {
+    var json: String = null
+    val future = environment.aggregator ? AggregatorCollectionToStats
+    Await.result(future, 3 seconds)
+
+    term match {
+      case "all" =>
+        json = write( StatsAll( ts = getCurrentDateTimeSec(), node = hostName, count = roomStats, rooms = roomUsers ) )
+      case "users" =>
+        json = write( StatsRooms( ts = getCurrentDateTimeSec(), node = hostName, rooms = roomUsers ) )
+      case "rooms" =>
+        json = write( StatsCount( ts = getCurrentDateTime(), node = hostName, count = roomStats ) )
+      case "member" =>
+        json = write( StatsCount( ts = getCurrentDateTime(), node = hostName, count = memberCount ) )
+      case "guest" =>
+        json = write( StatsCount( ts = getCurrentDateTime(), node = hostName, count = guestCount ) )
+    }
+
+    collectionEmpty
+    json
+  }
+
+  def CountTotalOnly(): String = {
+    environment.aggregator ! AggregatorView
+    val future = environment.aggregator ? AggregatorValueToStats
+    Await.result(future, 3 seconds)
+
+    write(
+      StatsTotal(
+        ts    = getCurrentDateTime(),
+        node  = hostName,
+        prop  = "All",
+        total = roomTotalCount,
+        member= memberTotalCount,
+        guest = guestTotalCount
+      )
+    )
+  }
+
+  def CountRoomOnce(chatRoomID: Int): String = {
+    val future = environment.aggregator ? AggregatorRoomValueToStats(chatRoomID)
+    Await.result(future, 1 seconds)
+
+    if( onceRoomTotalCount == 0 )
+      RespReason( s"R#${chatRoomID} does not exgist !" )
+    else write(
+        StatsTotal(
+          ts    = getCurrentDateTime(),
+          node  = hostName,
+          prop  = chatRoomID.toString,
+          total = onceRoomTotalCount,
+          member= onceMemberTotalCount,
+          guest = onceGuestTotalCount
+        )
+    )
+  }
+
+  def RespReason(msg: String): String = {
+    write(
+      StatsReason(
+        ts    = getCurrentDateTime(),
+        node  = hostName,
+        reason= msg
+      )
+    )
+  }
+
+  def ConvertMsg4User(msg: String): String = {
+    write((parse(msg.replaceAll("\\p{Cntrl}", ""))(1) \ "data")(1))
+  }
+
+  def HttpRespJson(body: String) = {
+    complete( HttpEntity(ContentTypes.`application/json`, body+"\r\n") )
+  }
+
+  def removeChatRoom(chatRoomID: Int): Unit = {
     this.synchronized {
-      chatRooms.getOrElse(number, createNewChatRoom(system, number))
+      chatRooms.remove(chatRoomID)
     }
   }
 
-  /**
-    * Creates new chatroom actor and adds chatRooms map
-    *
-    * @param number chatroom ID
-    * @return the reference of newly created chatRoomActor
-    */
-  def createNewChatRoom(system: ActorSystem, number: Int): ActorRef = {
-    //creates new ChatRoomActor and returns as an ActorRef
-    val chatroom = system.actorOf(Props(new ChatRoomActor), "chat" + number)
-    chatRooms += number -> chatroom
-    chatroom
+  def setTotalCountValues(total:Int, member:Int, guest:Int) = {
+    roomTotalCount = total
+    memberTotalCount = member
+    guestTotalCount = guest
+    roomTotalCount
   }
 
+  def setOnceTotalCountValues(total:Int, member:Int, guest:Int) = {
+    onceRoomTotalCount = total
+    onceMemberTotalCount = member
+    onceGuestTotalCount = guest
+    onceRoomTotalCount
+  }
+
+  def setCollectionValues(room: mutable.Map[Int,Int], member: mutable.Map[Int,Int], guest: mutable.Map[Int,Int]) = {
+    roomStats = room
+    guestCount = guest
+    memberCount = member
+    true
+  }
 }
+
