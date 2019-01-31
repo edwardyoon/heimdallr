@@ -30,15 +30,15 @@ object environment {
   var version = ""
   var envType = ""
 
-  def getHeimdallrSystem() = {
+  def getHeimdallrSystem():ActorSystem = {
     system
   }
 
-  def setEnvType(str: String) = {
+  def setEnvType(str: String):Unit = {
     envType = str
   }
 
-  def getEnvType() = {
+  def getEnvType():String = {
     envType
   }
 }
@@ -148,8 +148,8 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
   }
 
   private def Bye() = {
-    println( "\nUsage : ")
-    println( " - sbt \"run [live|standby|development or dev]\"\n")
+    log.info("\nUsage : ")
+    log.info(" - sbt \"run [live|standby|development or dev]\"\n")
     context.system.terminate()
     null
   }

@@ -86,14 +86,14 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
     * This function is used for connect to redis. If redis is dead, we'll retry until redis is up.
     */
   def connectToRedis(): Unit = {
-    if(failover)
-    {
+    if (failover) {
       try {
-        if(!s.connected) {
+        if (!s.connected) {
           s = new RedisClient(redisIp, redisPort)
         }
-        if(!p.connected)
+        if (!p.connected) {
           p = new RedisClient(redisIp, redisPort)
+        }
 
         subscribe()
       } catch {
@@ -103,18 +103,16 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
       } finally {
         log.info("## Redis connection has established.")
       }
-    }
-    else {
+    } else {
       log.info(s"[#$chatRoomID] Became PoisonPill, Retry to Disconnect redis ... ")
-      if(p.connected && s.connected)
-      {
+      if (p.connected && s.connected) {
         //s.unsubscribe(chatRoomName)
         p.disconnect
         s.disconnect
         log.info(s"[#$chatRoomID] Retry, Redis Disconnected.")
-      }
-      else
+      } else {
         log.info(s"[#$chatRoomID]  => Redis Disconnected.")
+      }
     }
   }
 
@@ -143,19 +141,17 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
     users.foreach(_ ! ChatRoomActor.ChatMessage(message))
   }
 
-  def updateIncrRoomUser(isGuest: Boolean, firstJoin: Boolean, joinUser: ActorRef) = {
-    if(firstJoin) {
+  def updateIncrRoomUser(isGuest: Boolean, firstJoin: Boolean, joinUser: ActorRef): Any = {
+    if (firstJoin) {
       users += joinUser
       environment.aggregator ! UpdateChatCount(chatRoomID, users.size, -1, -1)
 
       // we also would like to remove the user when its actor is stopped
       context.watch(joinUser)
-    }
-    else {
-      if(isGuest) {
+    } else {
+      if (isGuest) {
         guest += 1
-      }
-      else {
+      } else {
         member+= 1
       }
 
@@ -163,12 +159,11 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
     }
   }
 
-  def updateDecrRoomUser(isGuest: Boolean, isJoin: Boolean, termUser: ActorRef) = {
-    if(isJoin) {
-      if(isGuest) {
+  def updateDecrRoomUser(isGuest: Boolean, isJoin: Boolean, termUser: ActorRef): Unit = {
+    if (isJoin) {
+      if (isGuest) {
         guest -= 1
-      }
-      else {
+      } else {
         member-= 1
       }
     }
@@ -176,13 +171,13 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
     users -= termUser
     environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
 
-    if(users.isEmpty) {
+    if (users.isEmpty) {
       destroyChatRoom()
     }
   }
 
   override def preStart(): Unit = {
-    log.info(s"[#$chatRoomID] actor has created. ${chatRoomName}" )
+    log.info(s"[#$chatRoomID] actor has created. ${chatRoomName}")
     connectToRedis()
   }
 
@@ -199,7 +194,7 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
     log.info(s"[ChatRoomActor#$chatRoomID] Down ... ${chatRoomName}")
   }
 
-  def destroyChatRoom() = {
+  def destroyChatRoom():Unit = {
     failover = false
     p.disconnect
     s.disconnect
@@ -254,7 +249,7 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
       log.info(s"messageLog ${msg.message}")
 
       // original message should be logged
-      if(p.connected && s.connected)
+      if (p.connected && s.connected)
         p.publish(chatRoomName, msg.message)
 
     case Terminated(user) => // for UserActor

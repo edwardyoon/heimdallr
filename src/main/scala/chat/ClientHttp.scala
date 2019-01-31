@@ -31,7 +31,7 @@ object ClientHttp {
   // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
-  def post(url: String, token: String) = {
+  def post(url: String, token: String):Future[String] = {
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(
       method = HttpMethods.POST,
@@ -44,7 +44,7 @@ object ClientHttp {
     responseFuture.flatMap(_.entity.toStrict(5 seconds).map(_.data.utf8String))
   }
 
-  def get(url: String) = {
+  def get(url: String):Future[String] = {
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(
       method = HttpMethods.GET,

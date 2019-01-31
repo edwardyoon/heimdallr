@@ -30,7 +30,7 @@ class HealthyService extends WebServiceActor {
 
   override def preStart(): Unit = {
     log.info( "Healthy Service Staring ..." )
-    ServiceBind(serviceRoute, servicePort)
+    serviceBind(serviceRoute, servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -43,15 +43,15 @@ class HealthyService extends WebServiceActor {
   }
 
   override def postStop(): Unit = {
-    ServiceUnbind()
+    serviceUnbind()
     log.info( "Healthy Service Down !" )
   }
 
   override def receive: Receive = {
     case WebServiceStart =>
-      ServiceBind(serviceRoute, servicePort)
+      serviceBind(serviceRoute, servicePort)
     case WebServiceStop =>
-      ServiceUnbind()
+      serviceUnbind()
     case x =>
       log.warning("HealthyService Unknown message : " + x)
   }

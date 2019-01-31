@@ -42,7 +42,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
       }
     }
 
-  def RegNode(port: Int) = {
+  def RegNode(port: Int):Unit = {
     val localhost = InetAddress.getLocalHost
     val localIpAddress = localhost.getHostAddress
 
@@ -95,13 +95,13 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
 
   override def preStart(): Unit = {
     log.info( "Heimdallr Server's staring ..." )
-    ServiceBind(serviceRoute, servicePort)
+    serviceBind(serviceRoute, servicePort)
     RegNode(servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     log.info( "Heimdallr Server's restarting ..." )
-    ServiceUnbind()
+    serviceUnbind()
     preStart()
   }
 
@@ -110,7 +110,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
   }
 
   override def postStop(): Unit = {
-    ServiceUnbind()
+    serviceUnbind()
     log.info( "Heimdallr Server Down !" )
   }
 
