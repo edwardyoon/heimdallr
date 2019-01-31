@@ -221,10 +221,10 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
       destroyChatRoom()
 
     case Block =>
-      log.info(s"[#$chatRoomID] receive Block Event:" + chatRoomName)
+      log.info(s"[#$chatRoomID] received Block Event:" + chatRoomName)
 
     case Join =>
-      log.info(s"[ChatRoomActor#$chatRoomID] receive Join Event:" + chatRoomName)
+      log.info(s"[ChatRoomActor#$chatRoomID] received Join Event:" + chatRoomName)
       updateIncrRoomUser(false,true, sender())
 
     case Leave =>
@@ -232,15 +232,15 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
       updateDecrRoomUser(false, false, sender())
 
     case TermChatUser(chatRoomID, is_guest, uID, nick) =>
-      log.info(s"[#$chatRoomID] receive TermChatUser Event:" + chatRoomName)
+      log.info(s"[#$chatRoomID] received TermChatUser Event:" + chatRoomName)
       updateDecrRoomUser(is_guest, true, sender())
 
     case RegUser(userID, nickName) => // todo : userinfo
-      log.info(s"[#$chatRoomID] receive Registry User Event:" + chatRoomName)
+      log.info(s"[#$chatRoomID] received Registry User Event:" + chatRoomName)
       updateIncrRoomUser(false,false,null)
 
     case SpecialTargetResponse(message) =>
-      log.info(s"[#$chatRoomID] receive SpecialTargetResponse Event:" + chatRoomName)
+      log.info(s"[#$chatRoomID] received SpecialTargetResponse Event:" + chatRoomName)
       updateIncrRoomUser(true,false,null)
 
       sender() ! ChatRoomActor.ChatMessage(message)

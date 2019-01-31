@@ -45,22 +45,18 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     }
 
   override def preStart(): Unit = {
-    log.info( "Heimdallr ChatSupervisor Staring ..." )
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.info( "Heimdallr ChatSupervisor Restarting ..." )
     log.info( reason.toString )
     preStart()
   }
 
   override def postRestart(reason: Throwable): Unit = {
-    log.info( "Heimdallr ChatSupervisor Restarted." )
     log.info( reason.toString )
   }
 
   override def postStop(): Unit = {
-    log.info( "Heimdallr ChatSupervisor Down !" )
   }
 
   /**
