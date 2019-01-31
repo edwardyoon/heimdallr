@@ -21,6 +21,7 @@ import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
 import akka.pattern.ask
 import akka.util.Timeout
+
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.collection.mutable
@@ -33,6 +34,7 @@ import org.json4s.jackson.JsonMethods._
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
+import akka.http.scaladsl.server.StandardRoute
 import chat.EventConstants.{AggregatorCollectionToStats, AggregatorRoomValueToStats, AggregatorValueToStats, AggregatorView}
 import org.slf4j.LoggerFactory
 
@@ -59,7 +61,7 @@ object ChatRooms {
   var onceGuestTotalCount: Int = 0
 
   // Node Information
-  var hostName: String = null
+  var hostName: String = ""
   var port: Int = 0
 
   // periodically update the block terms.
@@ -82,7 +84,7 @@ object ChatRooms {
     DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(LocalDateTime.now)
   }
 
-  def RoomMemberInfor(chatRoomID: Int): String = {
+  def roomMemberInfor(chatRoomID: Int): String = {
     RespReason( s"TODO ..." )
   }
 
@@ -92,8 +94,8 @@ object ChatRooms {
     memberCount = mutable.Map.empty[Int, Int]
   }
 
-  def CountRoomsTerm(term: String): String = {
-    var json: String = null
+  def countRoomsTerm(term: String): String = {
+    var json: String = ""
     val future = environment.aggregator ? AggregatorCollectionToStats
     Await.result(future, 3 seconds)
 
@@ -135,18 +137,20 @@ object ChatRooms {
     val future = environment.aggregator ? AggregatorRoomValueToStats(chatRoomID)
     Await.result(future, 1 seconds)
 
-    if( onceRoomTotalCount == 0 )
-      RespReason( s"R#${chatRoomID} does not exgist !" )
-    else write(
-        StatsTotal(
-          ts    = getCurrentDateTime(),
-          node  = hostName,
-          prop  = chatRoomID.toString,
-          total = onceRoomTotalCount,
-          member= onceMemberTotalCount,
-          guest = onceGuestTotalCount
+    if (onceRoomTotalCount == 0) {
+      RespReason(s"R#${chatRoomID} does not exgist !")
+    } else {
+        write(
+          StatsTotal(
+            ts = getCurrentDateTime(),
+            node = hostName,
+            prop = chatRoomID.toString,
+            total = onceRoomTotalCount,
+            member = onceMemberTotalCount,
+            guest = onceGuestTotalCount
+          )
         )
-    )
+    }
   }
 
   def RespReason(msg: String): String = {
@@ -163,8 +167,8 @@ object ChatRooms {
     write((parse(msg.replaceAll("\\p{Cntrl}", ""))(1) \ "data")(1))
   }
 
-  def HttpRespJson(body: String) = {
-    complete( HttpEntity(ContentTypes.`application/json`, body+"\r\n") )
+  def HttpRespJson(body: String): StandardRoute = {
+    complete( HttpEntity(ContentTypes.`application/json`, body + "\r\n") )
   }
 
   def removeChatRoom(chatRoomID: Int): Unit = {
@@ -173,21 +177,21 @@ object ChatRooms {
     }
   }
 
-  def setTotalCountValues(total:Int, member:Int, guest:Int) = {
+  def setTotalCountValues(total:Int, member:Int, guest:Int):Int = {
     roomTotalCount = total
     memberTotalCount = member
     guestTotalCount = guest
     roomTotalCount
   }
 
-  def setOnceTotalCountValues(total:Int, member:Int, guest:Int) = {
+  def setOnceTotalCountValues(total:Int, member:Int, guest:Int):Int = {
     onceRoomTotalCount = total
     onceMemberTotalCount = member
     onceGuestTotalCount = guest
     onceRoomTotalCount
   }
 
-  def setCollectionValues(room: mutable.Map[Int,Int], member: mutable.Map[Int,Int], guest: mutable.Map[Int,Int]) = {
+  def setCollectionValues(room: mutable.Map[Int,Int], member: mutable.Map[Int,Int], guest: mutable.Map[Int,Int]):Boolean = {
     roomStats = room
     guestCount = guest
     memberCount = member

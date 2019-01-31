@@ -57,8 +57,8 @@ class Aggregator extends Actor with ActorLogging {
 
   def updateChatRoom(chatRoomID: Int, users: Int, member: Int, guest: Int): Unit = {
     roomStats += chatRoomID -> users
-    if( member > -1 ) memberCount += chatRoomID -> member
-    if( guest > -1 ) guestCount += chatRoomID -> guest
+    if (member > -1) memberCount += chatRoomID -> member
+    if (guest > -1) guestCount += chatRoomID -> guest
 
     /* - debug mode
     val tt = roomStats.values.sum

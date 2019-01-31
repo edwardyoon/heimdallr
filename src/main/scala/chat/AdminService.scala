@@ -40,15 +40,15 @@ class AdminService extends WebServiceActor {
       } ~
       pathPrefix("stats") {
         path("all") {
-          ChatRooms.HttpRespJson( ChatRooms.CountRoomsTerm("all") )
+          ChatRooms.HttpRespJson( ChatRooms.countRoomsTerm("all") )
         } ~
         path("rooms") {
-          ChatRooms.HttpRespJson( ChatRooms.CountRoomsTerm("users") )
+          ChatRooms.HttpRespJson( ChatRooms.countRoomsTerm("users") )
         } ~
         pathPrefix("room") {
           path(IntNumber) {
             chatRoomID => {
-              ChatRooms.HttpRespJson( ChatRooms.RoomMemberInfor(chatRoomID) )
+              ChatRooms.HttpRespJson( ChatRooms.roomMemberInfor(chatRoomID) )
             }
           }
         } ~
@@ -57,14 +57,14 @@ class AdminService extends WebServiceActor {
             ChatRooms.HttpRespJson( ChatRooms.CountTotalOnly() )
           } ~
           path("rooms") {
-            ChatRooms.HttpRespJson( ChatRooms.CountRoomsTerm("rooms") )
+            ChatRooms.HttpRespJson( ChatRooms.countRoomsTerm("rooms") )
           } ~
           pathPrefix("rooms") {
             path("member") {
-              ChatRooms.HttpRespJson( ChatRooms.CountRoomsTerm("member") )
+              ChatRooms.HttpRespJson( ChatRooms.countRoomsTerm("member") )
             } ~
             path("guest") {
-              ChatRooms.HttpRespJson( ChatRooms.CountRoomsTerm("guest") )
+              ChatRooms.HttpRespJson( ChatRooms.countRoomsTerm("guest") )
             }
           } ~
           pathPrefix("room") {
@@ -77,13 +77,13 @@ class AdminService extends WebServiceActor {
         }
       } ~
       path("pretty" ) {
-        ChatRooms.HttpRespJson( ChatRooms.CountRoomsTerm("all") )
+        ChatRooms.HttpRespJson( ChatRooms.countRoomsTerm("all") )
       }
     }
 
   override def preStart(): Unit = {
     log.debug( "Admin Server Staring ..." )
-    ServiceBind(serviceRoute, servicePort)
+    serviceBind(serviceRoute, servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -96,15 +96,15 @@ class AdminService extends WebServiceActor {
   }
 
   override def postStop(): Unit = {
-    ServiceUnbind()
+    serviceUnbind()
     log.debug( "Admin Server Down !" )
   }
 
   override def receive: Receive = {
     case WebServiceStart =>
-      ServiceBind(serviceRoute, servicePort)
+      serviceBind(serviceRoute, servicePort)
     case WebServiceStop =>
-      ServiceUnbind()
+      serviceUnbind()
     case x =>
       log.warning("AdminService Unknown message : " + x)
   }

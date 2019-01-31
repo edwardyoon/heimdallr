@@ -43,17 +43,17 @@ object UserActor {
   * @param chatRoomID ChatRoom Unique Number
   */
 class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLogging {
+  import UserActor._
   implicit val executionContext: ExecutionContext = context.dispatcher
   context.setReceiveTimeout(Duration.create(12, TimeUnit.HOURS))
 
-  import UserActor._
   private var joinRetry: Int = 0
   private var chatRoom: ActorRef = null
 
 
   override def preStart(): Unit = {
     chatRoom = ChatRooms.chatRooms.getOrElse(chatRoomID, null)
-    if(chatRoom == null) {
+    if (chatRoom == null) {
       chatSuper ! RegChatUser(chatRoomID, self)
       log.info(s"[#$chatRoomID] gets a ChatRoomActorRef for UserActor" )
     }
@@ -70,10 +70,9 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
   override def postStop(): Unit = {
     var userVal: String = null
 
-    if(chatRoom != null) {
+    if (chatRoom != null) {
       chatRoom ! ChatRoomActor.Leave
-    }
-    else {
+    } else {
       log.info(s"[#$chatRoomID] UserActor couldn't get chatroom!" )
     }
 
@@ -91,17 +90,15 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
       log.info(s"[#$chatRoomID] Set ChatRoom : $chatRoomID")
 
     case Connected(outgoing) =>
-      if(chatRoom == null) {
-        if(joinRetry < 1000) {
+      if (chatRoom == null) {
+        if (joinRetry < 1000) {
           joinRetry += 1
           self ! UserActor.Connected(outgoing) //<-Retry
-        }
-        else {
+        } else {
           log.debug(s"[#$chatRoomID] Become->State(Default): chatRoom is null ... Retry Limit over, UserActor PoisonPill")
           self ! PoisonPill
         }
-      }
-      else {
+      } else {
         context.become(connected(outgoing))
         log.debug(s"[#$chatRoomID] Become->State: User Connected")
       }
@@ -124,7 +121,7 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
   }
 
   def connected(outgoing: ActorRef): Receive = {
-    if(chatRoom == null) {
+    if (chatRoom == null) {
       log.debug(s"[Debug] User Actor ChatRoom Actor is null")
     }
     chatRoom ! ChatRoomActor.Join
@@ -133,10 +130,9 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
     {
       // passes incoming text as a chat message to chatroom actor
       case IncomingMessage(text) =>
-        if(chatRoom == null) {
+        if (chatRoom == null) {
           log.error("User Actor ... IncomingMessage ... ChatRoom Actor is NULL")
-        }
-        else {
+        } else {
           chatRoom ! ChatRoomActor.ChatMessage(text)
         }
 

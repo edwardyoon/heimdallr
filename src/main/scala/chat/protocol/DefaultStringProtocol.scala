@@ -20,7 +20,7 @@ import akka.actor.ActorRef
 
 class DefaultString extends Protocol {
 
-  def protocol(roomUsers: Set[ActorRef], msg: String) = {
+  def protocol(roomUsers: Set[ActorRef], msg: String):Unit = {
     Messenger.broadcast(roomUsers, msg)
   }
 }
