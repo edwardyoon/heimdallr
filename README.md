@@ -95,3 +95,9 @@ public class WSClientSample extends WebSocketClient {
 
 ### Client Demo HTML example 
 To see demo of our project, you can use our ready-made websocket connected html file in ```Heimdallr/src/main/web```.
+
+## Development pattern for contributors
+Basically follow the [Scala style guide](https://docs.scala-lang.org/style/).
+  1. Fork [heimdallr repository](https://github.com/edwardyoon/heimdallr) into your GitHub.
+  2. Create a branch for the feature and modify the code.
+  3. Please pull request the branch you worked on.
