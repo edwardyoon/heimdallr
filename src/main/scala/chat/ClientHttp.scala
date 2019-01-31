@@ -24,11 +24,13 @@ import chat.environment
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
+/**
+  * Implementation of GET and POST request methods
+  */
 object ClientHttp {
 
   implicit val system = environment.getHeimdallrSystem()
   implicit val materializer = ActorMaterializer()
-  // needed for the future flatMap/onComplete in the end
   implicit val executionContext = system.dispatcher
 
   def post(url: String, token: String):Future[String] = {

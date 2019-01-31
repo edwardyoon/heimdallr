@@ -104,7 +104,6 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
         log.info("## Redis connection has established.")
       }
     } else {
-      log.info(s"[#$chatRoomID] Became PoisonPill, Retry to Disconnect redis ... ")
       if (p.connected && s.connected) {
         //s.unsubscribe(chatRoomName)
         p.disconnect

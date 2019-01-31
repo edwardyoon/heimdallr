@@ -43,6 +43,10 @@ object environment {
   }
 }
 
+/**
+  * This supervisor is a grand parent actor and handles whole sub services
+  * @param actorSystem
+  */
 class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging {
   implicit val system = actorSystem
   implicit val executionContext: ExecutionContext = context.dispatcher

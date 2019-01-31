@@ -47,9 +47,8 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
   implicit val executionContext: ExecutionContext = context.dispatcher
   context.setReceiveTimeout(Duration.create(12, TimeUnit.HOURS))
 
-  private var joinRetry: Int = 0
+  private var joinRetries: Int = 0
   private var chatRoom: ActorRef = null
-
 
   override def preStart(): Unit = {
     chatRoom = ChatRooms.chatRooms.getOrElse(chatRoomID, null)
@@ -64,7 +63,7 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
   }
 
   override def postRestart(reason: Throwable): Unit = {
-    log.info(s"[#$chatRoomID] UserActor has restarted." )
+    log.info(s"[#$chatRoomID] user actor has restarted." )
   }
 
   override def postStop(): Unit = {
@@ -76,7 +75,7 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
       log.info(s"[#$chatRoomID] UserActor couldn't get chatroom!" )
     }
 
-    log.info(s"[#$chatRoomID] UserActor($userVal) is gonna stop!" )
+    log.info(s"[#$chatRoomID] UserActor($userVal) is stopped!" )
   }
 
   // Initializes the defaults for session creation.
@@ -91,11 +90,11 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
 
     case Connected(outgoing) =>
       if (chatRoom == null) {
-        if (joinRetry < 1000) {
-          joinRetry += 1
+        if (joinRetries < 1000) {
+          joinRetries += 1
           self ! UserActor.Connected(outgoing) //<-Retry
         } else {
-          log.debug(s"[#$chatRoomID] Become->State(Default): chatRoom is null ... Retry Limit over, UserActor PoisonPill")
+          log.debug(s"[#$chatRoomID] It looks like chatRoom is null ... just drinking poison myself.")
           self ! PoisonPill
         }
       } else {
@@ -111,11 +110,11 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
 
     case Blocked(outgoing) =>
       context.become(blocked(outgoing))
-      log.debug(s"[#$chatRoomID] Become->State: User Blocked")
+      log.debug(s"[#$chatRoomID] Become->State: User has blocked")
 
     case Left(outgoing) =>
       context.become(left(outgoing))
-      log.debug(s"[#$chatRoomID] Become->State: User Left")
+      log.debug(s"[#$chatRoomID] Become->State: User is just left")
 
     case x => log.warning("User Actor has received Unknown Message : " + x)
   }
@@ -140,7 +139,7 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
       case ChatRoomActor.ChatMessage(text) =>
         outgoing ! OutgoingMessage(text)
 
-      case x => log.warning("User Actor Receive Connected / Unknown Message : " + x)
+      case x => log.warning("User Actor has received Unknown Message : " + x)
     }
   }
 
