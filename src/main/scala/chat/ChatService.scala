@@ -91,13 +91,6 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     case x: Exception =>
       log.info("FIXME: ChatService => " + x.toString)
       Resume
-    /*
-    case _: ArithmeticException => Restart
-    case _: NullPointerException => Resume
-    case _: IllegalArgumentException => Stop
-    case t =>
-      super.supervisorStrategy.decider.applyOrElse( t, (_:Any) => Escalate )
-    */
   }
 
   override def preStart(): Unit = {
