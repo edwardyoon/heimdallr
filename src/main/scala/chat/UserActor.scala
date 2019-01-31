@@ -55,19 +55,16 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
     chatRoom = ChatRooms.chatRooms.getOrElse(chatRoomID, null)
     if(chatRoom == null) {
       chatSuper ! RegChatUser(chatRoomID, self)
-      log.info(s"[#$chatRoomID] Get a ChatRoomActorRef for UserActor" )
+      log.info(s"[#$chatRoomID] gets a ChatRoomActorRef for UserActor" )
     }
-
-    log.info(s"[#$chatRoomID] UserActor Staring ..." )
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.info(s"[#$chatRoomID] UserActor Restarting ..." )
     preStart()
   }
 
   override def postRestart(reason: Throwable): Unit = {
-    log.info(s"[#$chatRoomID] UserActor Restarted." )
+    log.info(s"[#$chatRoomID] UserActor has restarted." )
   }
 
   override def postStop(): Unit = {
@@ -123,7 +120,7 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
       context.become(left(outgoing))
       log.debug(s"[#$chatRoomID] Become->State: User Left")
 
-    case x => log.warning("User Actor Receive Default / Unknown Message : " + x)
+    case x => log.warning("User Actor has received Unknown Message : " + x)
   }
 
   def connected(outgoing: ActorRef): Receive = {
@@ -157,17 +154,17 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
 
     {
       case _ =>
-        chatRoom ! ChatRoomActor.ChatMessage(s"User Bocked.")
+        chatRoom ! ChatRoomActor.ChatMessage(s"User has blocked.")
     }
   }
 
   def left(outgoing: ActorRef): Receive = {
     chatRoom ! ChatRoomActor.Leave
-    log.info(s"[#$chatRoomID] Leave at ChatRoom($chatRoomID)")
+    log.info(s"[#$chatRoomID] leaves from ChatRoom($chatRoomID)")
 
     {
       case _ =>
-        chatRoom ! ChatRoomActor.ChatMessage(s"User Left.")
+        chatRoom ! ChatRoomActor.ChatMessage(s"User has left.")
     }
   }
 }

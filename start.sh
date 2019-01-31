@@ -17,15 +17,15 @@
 #
 
 if [[ $1 != "standby" && $1 != "live" && $1 != "dev" ]]; then
-	echo " - Heimdallr usage :"
-	echo "   $ start.sh [live|standby|dev]"
-	echo
-	exit 0
+  echo " - Heimdallr usage :"
+  echo "   $ start.sh [live|standby|dev]"
+  echo
+  exit 0
 fi
 
 echo "Heimdallr Server Starting ..."
 if [[ ! -d "./logs" ]]; then
-	mkdir -p logs && echo "created dir:logs"
+  mkdir -p logs && echo "created dir:logs"
 fi
 
 # JVM Options

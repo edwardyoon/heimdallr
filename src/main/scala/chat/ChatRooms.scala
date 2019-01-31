@@ -83,19 +83,6 @@ object ChatRooms {
   }
 
   def RoomMemberInfor(chatRoomID: Int): String = {
-    /* TODO ...
-    var users = roomUsers.getOrElse(chatRoomID, null)
-    if( users == null )
-      RespReason( s"R#${chatRoomID} does not exgist !" )
-    else write(
-      StatsRoomUsers(
-        ts    = getCurrentDateTime(),
-        node  = hostName,
-        prop  = chatRoomID.toString,
-        users = roomUsers.getOrElse(chatRoomID, null)
-      )
-    )
-    */
     RespReason( s"TODO ..." )
   }
 

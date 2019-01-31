@@ -18,6 +18,8 @@ package chat
 
 import akka.actor._
 import akka.http.scaladsl.Http
+import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
+import akka.stream.scaladsl.Flow
 import akka.stream._
 import akka.actor.ActorLogging
 import scala.concurrent.ExecutionContext
@@ -31,17 +33,16 @@ trait WebServiceActor extends Actor with ActorLogging {
   private  var binding: scala.concurrent.Future[akka.http.scaladsl.Http.ServerBinding] = null
 
   def ServiceBind(
-    bindRoute: akka.stream.scaladsl.Flow[akka.http.scaladsl.model.HttpRequest,akka.http.scaladsl.model.HttpResponse,Any],
+    bindRoute: Flow[HttpRequest, HttpResponse, Any],
     bindPort: Int
   ): Unit = {
     binding = Http().bindAndHandle(bindRoute,"0.0.0.0", bindPort)
 
-    // the rest of the sample code will go here
     binding.onComplete {
       //binding success check
       case Success(binding) =>
         val localAddress = binding.localAddress
-        log.info(s"Server is listening on ${localAddress.getAddress}:${localAddress.getPort}")
+        log.info(s"Server is available on ${localAddress.getAddress}:${localAddress.getPort}")
 
       case Failure(e) =>
         log.warning(s"Binding failed with ${e.getMessage}")
@@ -54,7 +55,7 @@ trait WebServiceActor extends Actor with ActorLogging {
       binding
         .flatMap(_.unbind())
         .onComplete(_ =>
-          log.info("listening port unbinding ... ")
+          log.info("Unbinding listening port ... ")
         )
     }
   }
