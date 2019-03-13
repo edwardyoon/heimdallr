@@ -19,6 +19,9 @@ package chat
 import akka.http.scaladsl.server.Directives._
 import EventConstants._
 
+/**
+  * This service is used for communicating heartbeat message with load balancer
+  */
 class HealthyService extends WebServiceActor {
   val servicePort = 8099
   val serviceRoute= //<- adjustable depended on client url
@@ -29,29 +32,29 @@ class HealthyService extends WebServiceActor {
     }
 
   override def preStart(): Unit = {
-    log.info( "Healthy Service Staring ..." )
-    ServiceBind(serviceRoute, servicePort)
+    log.info( "Staring Health Service ..." )
+    serviceBind(serviceRoute, servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.info( "Healthy Service Restarting ..." )
+    log.info( "Restarting Health Service ..." )
     preStart()
   }
 
   override def postRestart(reason: Throwable): Unit = {
-    log.info( "Healthy Service Restarted." )
+    log.info( "Health Service has restarted." )
   }
 
   override def postStop(): Unit = {
-    ServiceUnbind()
-    log.info( "Healthy Service Down !" )
+    serviceUnbind()
+    log.info( "Health Service Down !" )
   }
 
   override def receive: Receive = {
     case WebServiceStart =>
-      ServiceBind(serviceRoute, servicePort)
+      serviceBind(serviceRoute, servicePort)
     case WebServiceStop =>
-      ServiceUnbind()
+      serviceUnbind()
     case x =>
       log.warning("HealthyService Unknown message : " + x)
   }

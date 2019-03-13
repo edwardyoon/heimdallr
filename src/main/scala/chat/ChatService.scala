@@ -32,6 +32,10 @@ import scala.concurrent.ExecutionContext.Implicits._
 import java.net._
 import EventConstants._
 
+/**
+  * The chat service. This routes the messages incoming from outside to the destination user actors.
+  * @param chatSuper
+  */
 class ChatService(chatSuper: ActorRef) extends WebServiceActor {
   val servicePort = 8000
   val serviceRoute= //<- adjustable depended on client url
@@ -42,7 +46,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
       }
     }
 
-  def RegNode(port: Int) = {
+  def RegNode(port: Int):Unit = {
     val localhost = InetAddress.getLocalHost
     val localIpAddress = localhost.getHostAddress
 
@@ -95,13 +99,13 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
 
   override def preStart(): Unit = {
     log.info( "Heimdallr Server's staring ..." )
-    ServiceBind(serviceRoute, servicePort)
+    serviceBind(serviceRoute, servicePort)
     RegNode(servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     log.info( "Heimdallr Server's restarting ..." )
-    ServiceUnbind()
+    serviceUnbind()
     preStart()
   }
 
@@ -110,8 +114,8 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
   }
 
   override def postStop(): Unit = {
-    ServiceUnbind()
-    log.info( "Heimdallr Server Down !" )
+    serviceUnbind()
+    log.info( "Heimdallr Server is stopped." )
   }
 
   override def receive: Receive = {

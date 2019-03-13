@@ -28,6 +28,10 @@ import org.json4s.jackson.Serialization.{read, write}
 import java.util.concurrent.TimeUnit
 import EventConstants._
 
+/**
+  * Parent actor of multiple chatroom actors.
+  * @param envType
+  */
 class ChatSupervisor(envType: String) extends Actor with ActorLogging {
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
@@ -44,8 +48,7 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
         super.supervisorStrategy.decider.applyOrElse( t, (_:Any) => Escalate )
     }
 
-  override def preStart(): Unit = {
-  }
+  override def preStart(): Unit = {}
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     log.info( reason.toString )
@@ -56,8 +59,7 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     log.info( reason.toString )
   }
 
-  override def postStop(): Unit = {
-  }
+  override def postStop(): Unit = {}
 
   /**
     * @param hostName, port

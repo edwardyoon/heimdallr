@@ -26,13 +26,16 @@ import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.{Failure,Success}
 
+/**
+  * A trait class contains binding functions that binds to a user-specified port on the machine
+  */
 trait WebServiceActor extends Actor with ActorLogging {
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val materializer = ActorMaterializer() //materialize actor to access stream
   private  var binding: scala.concurrent.Future[akka.http.scaladsl.Http.ServerBinding] = null
 
-  def ServiceBind(
+  def serviceBind(
     bindRoute: Flow[HttpRequest, HttpResponse, Any],
     bindPort: Int
   ): Unit = {
@@ -49,9 +52,8 @@ trait WebServiceActor extends Actor with ActorLogging {
     }
   }
 
-  def ServiceUnbind() = {
-    if( binding != null )
-    {
+  def serviceUnbind():Unit = {
+    if (binding != null) {
       binding
         .flatMap(_.unbind())
         .onComplete(_ =>
