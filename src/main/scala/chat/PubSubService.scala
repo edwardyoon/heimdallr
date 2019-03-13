@@ -87,13 +87,10 @@ class SubServiceActor(redisSubClient: RedisClient) extends Actor with ActorLoggi
   override def receive: Receive = {
     // from other actor
     case Subscribe(channels) =>
-      log.info(s"debug/sub chan : ${channels}")
-
       state = state.onSubscribe(sender, channels: _*)
       redisSubClient.subscribe(channels.head, channels.tail: _*) {
         msg: PubSubMessage =>
           // from com.redis.PubSub.Consumer thread
-          log.info(s"debug/${msg}")
           self ! msg
       }
 
