@@ -29,6 +29,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
 import chat.ChatRooms.UserInfo
 import EventConstants._
+import RedisEventHandler._
 
 object ChatRoomActor {
   case object Join
@@ -53,25 +54,21 @@ object ChatRoomActor {
   *
   * @param chatRoomID ChatRoom Unique Number
   */
-class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLogging {
+class ChatRoomActor(chatRoomID: Int, envType: String, p: ActorRef, s: ActorRef) extends Actor with ActorLogging {
+
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val system = context.system
-
-  val prefix = system.settings.config.getString("akka.environment.pubsub-channel.prefix")
-  val postfix = system.settings.config.getString("akka.environment.pubsub-channel.postfix")
-  val chatRoomName = setChatRoomName(envType, prefix, postfix)
-
-  val recvTimeout = system.settings.config.getInt(s"akka.environment.${envType}.chatroom-receive-timeout")
-  val redisIp = system.settings.config.getString(s"akka.environment.${envType}.redis-ip")
-  val redisPort = system.settings.config.getInt(s"akka.environment.${envType}.redis-port")
-  var s = new RedisClient(redisIp, redisPort)
-  var p = new RedisClient(redisIp, redisPort)
 
   import ChatRoomActor._
   private var failover: Boolean = true
   private var users: Set[ActorRef] = Set.empty
   private var member: Int = 0
   private var guest: Int = 0
+
+  val recvTimeout = system.settings.config.getInt(s"akka.environment.${envType}.chatroom-receive-timeout")
+  val prefix      = system.settings.config.getString("akka.environment.pubsub-channel.prefix")
+  val postfix     = system.settings.config.getString("akka.environment.pubsub-channel.postfix")
+  val chatRoomName= setChatRoomName(envType, prefix, postfix)
 
   context.setReceiveTimeout(Duration.create(recvTimeout, TimeUnit.SECONDS))
 
@@ -82,102 +79,23 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
     }
   }
 
-  /**
-    * This function is used for connect to redis. If redis is dead, we'll retry until redis is up.
-    */
-  def connectToRedis(): Unit = {
-    if (failover) {
-      try {
-        if (!s.connected) {
-          s = new RedisClient(redisIp, redisPort)
-        }
-        if (!p.connected) {
-          p = new RedisClient(redisIp, redisPort)
-        }
-
-        subscribe()
-      } catch {
-        case x: Exception =>
-          log.info("Retry to connect redis. It caused by " + x)
-          connectToRedis()
-      } finally {
-        log.info("## Redis connection has established.")
-      }
-    } else {
-      if (p.connected && s.connected) {
-        //s.unsubscribe(chatRoomName)
-        p.disconnect
-        s.disconnect
-        log.info(s"[#$chatRoomID] Retry, Redis Disconnected.")
-      } else {
-        log.info(s"[#$chatRoomID]  => Redis Disconnected.")
-      }
-    }
-  }
-
-  def subscribe(): Unit = {
-    s.subscribe(chatRoomName) { pubsub =>
-      pubsub match {
-        case S(channel, no) => log.info("subscribed to " + channel + " and count = " + no)
-        case U(channel, no) => log.info("unsubscribed from " + channel + " and count = " + no)
-        case E(exception) =>
-          p.disconnect
-          s.disconnect
-          if (exception.toString.equals("com.redis.RedisConnectionException: Connection dropped ..")) {
-            log.error(exception + ", #1 Fatal error caught at Redis subscribe(). :" + chatRoomName)
-            connectToRedis()
-          } else {
-            log.error(exception + ", #2 Fatal error caught at Redis subscribe(). :" + chatRoomName)
-          }
-
-        case M(channel, msg) =>
-          broadcast(msg)
-      }
-    }
-  }
-
   def broadcast(message: String): Unit = {
     users.foreach(_ ! ChatRoomActor.ChatMessage(message))
   }
 
-  def updateIncrRoomUser(isGuest: Boolean, firstJoin: Boolean, joinUser: ActorRef): Any = {
-    if (firstJoin) {
-      users += joinUser
-      environment.aggregator ! UpdateChatCount(chatRoomID, users.size, -1, -1)
+  def destroyChatRoom() = {
+    failover = false
 
-      // we also would like to remove the user when its actor is stopped
-      context.watch(joinUser)
-    } else {
-      if (isGuest) {
-        guest += 1
-      } else {
-        member+= 1
-      }
+    ChatRooms.removeChatRoom(chatRoomID)
+    environment.aggregator ! RemoveChatRoom(chatRoomID)
 
-      environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
-    }
-  }
-
-  def updateDecrRoomUser(isGuest: Boolean, isJoin: Boolean, termUser: ActorRef): Unit = {
-    if (isJoin) {
-      if (isGuest) {
-        guest -= 1
-      } else {
-        member-= 1
-      }
-    }
-
-    users -= termUser
-    environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
-
-    if (users.isEmpty) {
-      destroyChatRoom()
-    }
+    gracefulStop(self, Duration.create(5, TimeUnit.SECONDS))
+    log.info(s"[ChatRoomActor#$chatRoomID] ChatRoomActor PoisonPill")
   }
 
   override def preStart(): Unit = {
-    log.info(s"[#$chatRoomID] actor has created. ${chatRoomName}")
-    connectToRedis()
+    log.info(s"[#$chatRoomID] actor has created. ${chatRoomName}" )
+    s ! Subscribe(Seq(chatRoomName))
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -191,18 +109,7 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
 
   override def postStop(): Unit = {
     log.info(s"[ChatRoomActor#$chatRoomID] Down ... ${chatRoomName}")
-  }
-
-  def destroyChatRoom():Unit = {
-    failover = false
-    p.disconnect
-    s.disconnect
-
-    ChatRooms.removeChatRoom(chatRoomID)
-    environment.aggregator ! RemoveChatRoom(chatRoomID)
-
-    gracefulStop(self, Duration.create(5, TimeUnit.SECONDS))
-    log.info(s"[ChatRoomActor#$chatRoomID] ChatRoomActor PoisonPill")
+    s ! Unsubscribe(Seq(chatRoomName))
   }
 
   /**
@@ -246,12 +153,47 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLo
       // publish message to all chatRoomActor that subscribes same chatRoomName
       log.info(s"[#$chatRoomID] publish message to chanel: " + chatRoomName)
       log.info(s"messageLog ${msg.message}")
-
-      // original message should be logged
-      if (p.connected && s.connected)
-        p.publish(chatRoomName, msg.message)
+      p ! Publish(chatRoomName, msg.message)
 
     case Terminated(user) => // for UserActor
       log.info(s"[#$chatRoomID] receive Terminated Event:" + chatRoomName)
+  }
+
+  def updateIncrRoomUser(isGuest: Boolean, firstJoin: Boolean, joinUser: ActorRef) = {
+    if(firstJoin) {
+      users += joinUser
+      environment.aggregator ! UpdateChatCount(chatRoomID, users.size, -1, -1)
+
+      // we also would like to remove the user when its actor is stopped
+      context.watch(joinUser)
+    }
+    else {
+      if(isGuest) {
+        guest += 1
+      }
+      else {
+        member+= 1
+      }
+
+      environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
+    }
+  }
+
+  def updateDecrRoomUser(isGuest: Boolean, isJoin: Boolean, termUser: ActorRef) = {
+    if(isJoin) {
+      if(isGuest) {
+        guest -= 1
+      }
+      else {
+        member-= 1
+      }
+    }
+
+    users -= termUser
+    environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
+
+    if(users.isEmpty) {
+      destroyChatRoom()
+    }
   }
 }
