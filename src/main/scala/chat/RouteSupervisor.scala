@@ -76,14 +76,17 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
       environment.version = system.settings.config.getString("akka.heimdallr-version" )
       environment.aggregator = context.actorOf(Props[Aggregator], "aggregator")
       context.watch(environment.aggregator)
+
       hs = context.actorOf(Props[HealthyService], "hs")
       context.watch(hs)
       as = context.actorOf(Props[AdminService], "as")
       context.watch(as)
+
       cs = context.actorOf(Props(classOf[ChatSupervisor], env), "cs")
       context.watch(cs)
       ws = context.actorOf(Props(classOf[ChatService], cs), "ws")
       context.watch(ws)
+
 
       HeimdallrLogo()
 

@@ -27,6 +27,7 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization.{read, write}
 import java.util.concurrent.TimeUnit
 import EventConstants._
+import com.redis.RedisClient
 
 /**
   * Parent actor of multiple chatroom actors.
@@ -35,6 +36,11 @@ import EventConstants._
 class ChatSupervisor(envType: String) extends Actor with ActorLogging {
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
+
+  val redisIp     = system.settings.config.getString(s"akka.environment.${envType}.redis-ip")
+  val redisPort   = system.settings.config.getInt(s"akka.environment.${envType}.redis-port")
+  val redisClient = new RedisClient(redisIp, redisPort)
+  var rs: ActorRef = null
 
   override val supervisorStrategy =
     OneForOneStrategy(
@@ -48,7 +54,10 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
         super.supervisorStrategy.decider.applyOrElse( t, (_:Any) => Escalate )
     }
 
-  override def preStart(): Unit = {}
+  override def preStart(): Unit = {
+    rs = context.actorOf(Props(new PubSubServiceActor(redisClient)), "rs") // RedisClientService
+    context.watch(rs)
+  }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     log.info( reason.toString )
@@ -88,7 +97,7 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     */
   def createNewChatRoom(number: Int): ActorRef = {
     //creates new ChatRoomActor and returns as an ActorRef
-    val chatroom = context.actorOf(Props(new ChatRoomActor(number, envType)), s"${number}")
+    val chatroom = context.actorOf(Props(new ChatRoomActor(number, envType, rs)), s"${number}")
     ChatRooms.chatRooms += number -> chatroom
     chatroom
   }
