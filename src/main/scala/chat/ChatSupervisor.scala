@@ -37,10 +37,12 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
 
-  val redisIp     = system.settings.config.getString(s"akka.environment.${envType}.redis-ip")
-  val redisPort   = system.settings.config.getInt(s"akka.environment.${envType}.redis-port")
-  val redisClient = new RedisClient(redisIp, redisPort)
-  var rs: ActorRef = null
+  val redisIp       = system.settings.config.getString(s"akka.environment.${envType}.redis-ip")
+  val redisPort     = system.settings.config.getInt(s"akka.environment.${envType}.redis-port")
+  val redisPubClient= new RedisClient(redisIp, redisPort)
+  val redisSubClient= new RedisClient(redisIp, redisPort)
+  var ps: ActorRef  = null
+  var ss: ActorRef  = null
 
   override val supervisorStrategy =
     OneForOneStrategy(
@@ -55,8 +57,10 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     }
 
   override def preStart(): Unit = {
-    rs = context.actorOf(Props(new PubSubServiceActor(redisClient)), "rs") // RedisClientService
-    context.watch(rs)
+    ps = context.actorOf(Props(new PubServiceActor(redisPubClient)), "ps")
+    context.watch(ps)
+    ss = context.actorOf(Props(new SubServiceActor(redisSubClient)), "ss")
+    context.watch(ss)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -97,7 +101,7 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     */
   def createNewChatRoom(number: Int): ActorRef = {
     //creates new ChatRoomActor and returns as an ActorRef
-    val chatroom = context.actorOf(Props(new ChatRoomActor(number, envType, rs)), s"${number}")
+    val chatroom = context.actorOf(Props(new ChatRoomActor(number, envType, ps, ss)), s"${number}")
     ChatRooms.chatRooms += number -> chatroom
     chatroom
   }

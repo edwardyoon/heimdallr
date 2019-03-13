@@ -54,7 +54,7 @@ object ChatRoomActor {
   *
   * @param chatRoomID ChatRoom Unique Number
   */
-class ChatRoomActor(chatRoomID: Int, envType: String, pubsub: ActorRef) extends Actor with ActorLogging {
+class ChatRoomActor(chatRoomID: Int, envType: String, p: ActorRef, s: ActorRef) extends Actor with ActorLogging {
 
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val system = context.system
@@ -85,8 +85,6 @@ class ChatRoomActor(chatRoomID: Int, envType: String, pubsub: ActorRef) extends 
 
   def destroyChatRoom() = {
     failover = false
-    //p.disconnect
-    //s.disconnect
 
     ChatRooms.removeChatRoom(chatRoomID)
     environment.aggregator ! RemoveChatRoom(chatRoomID)
@@ -97,7 +95,7 @@ class ChatRoomActor(chatRoomID: Int, envType: String, pubsub: ActorRef) extends 
 
   override def preStart(): Unit = {
     log.info(s"[#$chatRoomID] actor has created. ${chatRoomName}" )
-    pubsub ! Subscribe(Seq(chatRoomName))
+    s ! Subscribe(Seq(chatRoomName))
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -111,7 +109,7 @@ class ChatRoomActor(chatRoomID: Int, envType: String, pubsub: ActorRef) extends 
 
   override def postStop(): Unit = {
     log.info(s"[ChatRoomActor#$chatRoomID] Down ... ${chatRoomName}")
-    pubsub ! Unsubscribe(Seq(chatRoomName))
+    s ! Unsubscribe(Seq(chatRoomName))
   }
 
   /**
@@ -155,19 +153,11 @@ class ChatRoomActor(chatRoomID: Int, envType: String, pubsub: ActorRef) extends 
       // publish message to all chatRoomActor that subscribes same chatRoomName
       log.info(s"[#$chatRoomID] publish message to chanel: " + chatRoomName)
       log.info(s"messageLog ${msg.message}")
-
-      pubsub ! Publish(chatRoomName), msg.message)
-
-      // original message should be logged
-      /*
-      if(p.connected && s.connected)
-        p.publish(chatRoomName, msg.message)
-      */
+      p ! Publish(chatRoomName, msg.message)
 
     case Terminated(user) => // for UserActor
       log.info(s"[#$chatRoomID] receive Terminated Event:" + chatRoomName)
   }
-
 
   def updateIncrRoomUser(isGuest: Boolean, firstJoin: Boolean, joinUser: ActorRef) = {
     if(firstJoin) {

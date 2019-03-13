@@ -16,11 +16,7 @@
  */
 package chat
 
-import java.util.concurrent.TimeUnit
-
 import akka.actor._
-//import com.redis._
-//import com.redis.{E, M, PubSubMessage, RedisClient, S, U}
 import com.redis.{E, M, PubSubMessage, RedisClient, S, U}
 import com.redis.RedisClient
 import com.typesafe.config.ConfigFactory
@@ -28,23 +24,24 @@ import scala.concurrent.ExecutionContext
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, ExecutionContext, Future}
-import chat.ChatRooms.UserInfo
+import java.util.concurrent.TimeUnit
 import EventConstants._
 import ChatRoomActor._
+import SubServiceActor._
+import RedisEventHandler._
 
 object RedisEventHandler {
   case class Subscribe(channels: Seq[String])
   case class Unsubscribe(channels: Seq[String])
-  case class Publish(channels:Seq[String], data: String)
+  case class Publish(channels: String, data: String)
 }
 
-object PubSubServiceActor {
-  def props(redisClient: RedisClient) =
-    Props(new PubSubServiceActor(redisClient))
-  //Props(new RedisClientActor(redisClient))
+object SubServiceActor {
+  def props(redisSubClient: RedisClient) =
+    Props(new SubServiceActor(redisSubClient))
 
-  case class SubscriptionState(subscriber: Map[String, Set[ActorRef]],
-                               subscribed: Map[ActorRef, Set[String]]) {
+    case class SubscriptionState(subscriber: Map[String, Set[ActorRef]],
+                                 subscribed: Map[ActorRef, Set[String]]) {
     def onSubscribe(actor: ActorRef, channels: String*): SubscriptionState = {
 
       val newSubscribed = subscribed.updated(
@@ -74,42 +71,29 @@ object PubSubServiceActor {
       subscriber.getOrElse(channel, Set.empty).size
     }
 
-    def getChannel(channel: String): ActorRef = {
+    def getChannel(channel: String): Set[ActorRef] = {
       subscriber.getOrElse(channel, null)
     }
   }
 }
 
-//class ChatRoomActor(chatRoomID: Int, envType: String) extends Actor with ActorLogging {
-//class RedisClientActor(chatRoomID: Int, envType: String) extends Actor with ActorLogging {
-//class PubSubServiceActor(envType: String) extends Actor with ActorLogging {
-class PubSubServiceActor(redisClient: RedisClient) extends Actor with ActorLogging {
-  import RedisEventHandler._
+class SubServiceActor(redisSubClient: RedisClient) extends Actor with ActorLogging {
 
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
-
-  /*
-  val prefix      = system.settings.config.getString("akka.environment.pubsub-channel.prefix")
-  val postfix     = system.settings.config.getString("akka.environment.pubsub-channel.postfix")
-  //val chatRoomName = setChatRoomName(envType, prefix, postfix)
-
-  val recvTimeout = system.settings.config.getInt(s"akka.environment.${envType}.chatroom-receive-timeout")
-  val redisIp     = system.settings.config.getString(s"akka.environment.${envType}.redis-ip")
-  val redisPort   = system.settings.config.getInt(s"akka.environment.${envType}.redis-port")
-  val redisClient = new RedisClient(redisIp, redisPort)
-  //var p = new RedisClient(redisIp, redisPort)
-  */
 
   var state = SubscriptionState(subscriber = Map.empty, subscribed = Map.empty)
 
   override def receive: Receive = {
     // from other actor
     case Subscribe(channels) =>
+      log.info(s"debug/sub chan : ${channels}")
+
       state = state.onSubscribe(sender, channels: _*)
-      redisClient.subscribe(channels.head, channels.tail: _*) {
+      redisSubClient.subscribe(channels.head, channels.tail: _*) {
         msg: PubSubMessage =>
           // from com.redis.PubSub.Consumer thread
+          log.info(s"debug/${msg}")
           self ! msg
       }
 
@@ -120,11 +104,15 @@ class PubSubServiceActor(redisClient: RedisClient) extends Actor with ActorLoggi
         c => oldState.numSubscriber(c) > 0 && state.numSubscriber(c) == 0
       )
       if (toUnsubscribe.nonEmpty) {
-        redisClient.unsubscribe(toUnsubscribe.head, toUnsubscribe.tail: _*)
+        redisSubClient.unsubscribe(toUnsubscribe.head, toUnsubscribe.tail: _*)
       }
 
+    /*
+    E(java.lang.Exception: ERR only (P)SUBSCRIBE / (P)UNSUBSCRIBE / PING / QUIT allowed in this context)
     case Publish(channels, data) =>
-      redisClient.publish(channels, data)
+      log.info("publish ... " + channels)
+      redisSubClient.publish(channels, data)
+    */
 
     // from com.redis
     case S(channel, count) =>
@@ -134,73 +122,47 @@ class PubSubServiceActor(redisClient: RedisClient) extends Actor with ActorLoggi
       log.info("unsubscribed to {} / subscribing to {}", channel, count)
 
     case M(channel, data) =>
-      log.info("message has arrived from redis.")
-      getChannel(channel) ! ChatRoomActor.ChatMessageToLocalUsers(data)
-    //val ch = getChannel(channel)
-    //ch ! ChatRoomActor.ChatMessageToLocalUsers(failoverJson)
+      val chs = state.getChannel(channel)
+      if(chs != null) {
+        chs.foreach{ ch =>
+          log.info(s"message has arrived from Channel[${ch}] => ${data}")
+          ch ! ChatRoomActor.ChatMessageToLocalUsers(data) //<- broadcast to chatroom users
+        }
+      }
+      else {
+        log.info(s"No Channel...")
+      }
 
     case E(exception) => // NOT handling com.redis.redisclient.E
       log.info(exception.toString())
   }
 
-  /*
-  def broadcast(message: String): Unit = {
-    users.foreach(_ ! ChatRoomActor.ChatMessage(message))
+  override def preStart(): Unit = {
+    log.info(s"SubService Actor has created.")
+  }
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    preStart()
+  }
+  override def postRestart(reason: Throwable): Unit = {}
+  override def postStop(): Unit = {
+    redisSubClient.disconnect
+  }
+}
+
+class PubServiceActor(redisPubClient: RedisClient) extends Actor with ActorLogging {
+  def receive = {
+    case Publish(channel, message) =>
+      redisPubClient.publish(channel, message)
   }
 
-  def connectToRedis(): Unit = {
-    if(failover)
-    {
-      try {
-        if(!s.connected) {
-          s = new RedisClient(redisIp, redisPort)
-        }
-        if(!p.connected)
-          p = new RedisClient(redisIp, redisPort)
-
-        subscribe()
-      } catch {
-        case x: Exception =>
-          log.info("Retry to connect redis. It caused by " + x)
-          connectToRedis()
-      } finally {
-        log.info("## Redis connection has established.")
-      }
-    }
-    else {
-      log.info(s"[#$chatRoomID] Became PoisonPill, Retry to Disconnect redis ... ")
-      if(p.connected && s.connected)
-      {
-        //s.unsubscribe(chatRoomName)
-        p.disconnect
-        s.disconnect
-        log.info(s"[#$chatRoomID] Retry, Redis Disconnected.")
-      }
-      else
-        log.info(s"[#$chatRoomID]  => Redis Disconnected.")
-    }
+  override def preStart(): Unit = {
+    log.info(s"PubService Actor has created.")
   }
-
-  def subscribe(): Unit = {
-    s.subscribe(chatRoomName) { pubsub =>
-      pubsub match {
-        case S(channel, no) => log.info("subscribed to " + channel + " and count = " + no)
-        case U(channel, no) => log.info("unsubscribed from " + channel + " and count = " + no)
-        case E(exception) =>
-          p.disconnect
-          s.disconnect
-          if (exception.toString.equals("com.redis.RedisConnectionException: Connection dropped ..")) {
-            log.error(exception + ", #1 Fatal error caught at Redis subscribe(). :" + chatRoomName)
-            connectToRedis()
-          } else {
-            log.error(exception + ", #2 Fatal error caught at Redis subscribe(). :" + chatRoomName)
-          }
-
-        case M(channel, msg) =>
-          broadcast(msg)
-      }
-    }
+  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    preStart()
   }
-
-  */
+  override def postRestart(reason: Throwable): Unit = {}
+  override def postStop(): Unit = {
+    redisPubClient.disconnect
+  }
 }
