@@ -21,7 +21,7 @@ import com.typesafe.config.ConfigFactory
 import EventConstants._
 
 /**
-  *
+  * The server that routes the messages incoming from outside to the destination actors.
   */
 object Heimdallr extends App {
   override def main(args: Array[String]): Unit = {

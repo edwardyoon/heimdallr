@@ -20,6 +20,14 @@ import akka.actor._
 import chat.EventConstants._
 import scala.concurrent.ExecutionContext
 import scala.collection.mutable
+import Aggregator._
+
+object Aggregator {
+  case object AggregatorView
+  case object AggregatorValueToStats
+  case object AggregatorCollection
+  case class AggCollection(roomStats: mutable.Map[Int, Int], memberCount: mutable.Map[Int, Int], guestCount: mutable.Map[Int, Int])
+}
 
 class Aggregator extends Actor with ActorLogging {
   implicit val system = context.system
@@ -29,6 +37,38 @@ class Aggregator extends Actor with ActorLogging {
   private var roomStats: mutable.Map[Int, Int] = mutable.Map.empty[Int, Int]  //<- guest + member
   private var guestCount: mutable.Map[Int, Int] = mutable.Map.empty[Int, Int]
   private var memberCount: mutable.Map[Int, Int] = mutable.Map.empty[Int, Int]
+
+  def removeChatRoom(chatRoomID: Int): Unit = {
+    memberCount.remove(chatRoomID)
+    guestCount.remove(chatRoomID)
+    roomStats.remove(chatRoomID)
+  }
+
+  def updateChatRoom(chatRoomID: Int, users: Int, member: Int, guest: Int): Unit = {
+    roomStats += chatRoomID -> users
+    if( member > -1 ) memberCount += chatRoomID -> member
+    if( guest > -1 ) guestCount += chatRoomID -> guest
+  }
+
+  override def receive: Receive = {
+    case AggregatorView =>
+      val total = roomStats.values.sum
+      val member= memberCount.values.sum
+      val guest = guestCount.values.sum
+      log.info(s"# Report => Updated Chat AggregatorView : T[$total] / M[$member] / G[$guest]")
+
+    case AggregatorCollection =>
+      sender() ! AggCollection(roomStats, memberCount, guestCount)
+
+    case UpdateChatCount(chatRoomID, users, member, guest) =>
+      updateChatRoom(chatRoomID, users, member, guest)
+
+    case RemoveChatRoom(chatRoomID) =>
+      removeChatRoom(chatRoomID)
+
+    case x =>
+      log.warning("Heimdallr Aggregator Unknown message : " + x)
+  }
 
   override def preStart(): Unit = {
     log.info( "Heimdallr Aggregator Staring ..." )
@@ -46,58 +86,5 @@ class Aggregator extends Actor with ActorLogging {
 
   override def postStop(): Unit = {
     log.info( "Heimdallr Aggregator Down !" )
-  }
-
-  def removeChatRoom(chatRoomID: Int): Unit = {
-    memberCount.remove(chatRoomID)
-    guestCount.remove(chatRoomID)
-    roomStats.remove(chatRoomID)
-    log.info(s"=> Removed Chat Room($chatRoomID)")
-  }
-
-  def updateChatRoom(chatRoomID: Int, users: Int, member: Int, guest: Int): Unit = {
-    roomStats += chatRoomID -> users
-    if (member > -1) memberCount += chatRoomID -> member
-    if (guest > -1) guestCount += chatRoomID -> guest
-
-    /* - debug mode
-    val tt = roomStats.values.sum
-    val mc= memberCount.values.sum
-    val gc = guestCount.values.sum
-    log.info(s"=> Updated Chat Room($chatRoomID) : T=$users / M=$member / G=$guest")
-    log.info(s"=> Updated Chat Room(TOTAL) : T-$tt / M-$mc / G-$gc")
-    */
-  }
-
-  override def receive: Receive = {
-    case AggregatorView =>
-      val total = roomStats.values.sum
-      val member= memberCount.values.sum
-      val guest = guestCount.values.sum
-      log.info(s"=> Updated Chat AggregatorView : T[$total] / M[$member] / G[$guest]")
-
-    case AggregatorCollectionToStats =>
-      sender ! ChatRooms.setCollectionValues(roomStats, memberCount, guestCount)
-
-    case AggregatorValueToStats =>
-      val total = roomStats.values.sum
-      val member= memberCount.values.sum
-      val guest = guestCount.values.sum
-      sender ! ChatRooms.setTotalCountValues(total, member, guest)
-
-    case AggregatorRoomValueToStats(chatRoomID) =>
-      val total = roomStats.getOrElse(chatRoomID, 0)
-      val member = memberCount.getOrElse(chatRoomID, 0)
-      val guest = guestCount.getOrElse(chatRoomID, 0)
-      sender ! ChatRooms.setOnceTotalCountValues(total, member, guest)
-
-    case UpdateChatCount(chatRoomID, users, member, guest) =>
-      updateChatRoom(chatRoomID, users, member, guest)
-
-    case RemoveChatRoom(chatRoomID) =>
-      removeChatRoom(chatRoomID)
-
-    case x =>
-      log.warning("Heimdallr Aggregator Unknown message : " + x)
   }
 }

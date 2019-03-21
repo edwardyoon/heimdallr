@@ -16,15 +16,17 @@
  */
 package chat
 
-import akka.actor._
 import java.util.concurrent.TimeUnit
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-import akka.pattern.ask
+import scala.util.{Failure, Success}
+import akka.actor._
+import akka.pattern.{ask,pipe}
 import akka.util.Timeout
+import akka.http.scaladsl.model.RemoteAddress
 import EventConstants._
 
 object UserActor {
@@ -42,16 +44,18 @@ object UserActor {
   *
   * @param chatRoomID ChatRoom Unique Number
   */
-class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLogging {
+class UserActor(chatRoomID: Int, chatSuper: ActorRef, ip: RemoteAddress) extends Actor with ActorLogging {
   import UserActor._
   implicit val executionContext: ExecutionContext = context.dispatcher
-  context.setReceiveTimeout(Duration.create(12, TimeUnit.HOURS))
+  context.setReceiveTimeout(Duration.create(2, TimeUnit.HOURS))
 
   private var joinRetries: Int = 0
   private var chatRoom: ActorRef = null
 
   override def preStart(): Unit = {
-    chatRoom = ChatRooms.chatRooms.getOrElse(chatRoomID, null)
+    this.synchronized {
+      chatRoom = ChatRooms.chatRooms.getOrElse(chatRoomID, null)
+    }
     if (chatRoom == null) {
       chatSuper ! RegChatUser(chatRoomID, self)
       log.info(s"[#$chatRoomID] gets a ChatRoomActorRef for UserActor" )
@@ -70,6 +74,7 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
     var userVal: String = null
 
     if (chatRoom != null) {
+      // TODO : Process Member & Guest
       chatRoom ! ChatRoomActor.Leave
     } else {
       log.info(s"[#$chatRoomID] UserActor couldn't get chatroom!" )
@@ -127,6 +132,10 @@ class UserActor(chatRoomID: Int, chatSuper: ActorRef) extends Actor with ActorLo
     log.debug(s"[#$chatRoomID] Join at ChatRoom($chatRoomID)")
 
     {
+      case ReceiveTimeout =>
+        log.info("I'm on idle status over 3 hours. Kill myself.")
+        context.stop(self)
+
       // passes incoming text as a chat message to chatroom actor
       case IncomingMessage(text) =>
         if (chatRoom == null) {

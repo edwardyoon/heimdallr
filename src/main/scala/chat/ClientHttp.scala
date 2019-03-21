@@ -24,34 +24,32 @@ import chat.environment
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-/**
-  * Implementation of GET and POST request methods
-  */
 object ClientHttp {
 
   implicit val system = environment.getHeimdallrSystem()
   implicit val materializer = ActorMaterializer()
   implicit val executionContext = system.dispatcher
 
-  def post(url: String, token: String):Future[String] = {
-
+  def post(path: String, token: String, jsonBody: String) = {
+    val objectEntity = HttpEntity(ContentTypes.`application/json`, jsonBody)
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(
       method = HttpMethods.POST,
-      uri = url
-      ).withHeaders(
-        RawHeader("Authorization", "Token " + token)
-      )
+      uri = path,
+      entity = objectEntity
+    ).withHeaders(
+      RawHeader("Authorization", "Token " + token)
+    )
     )
 
     responseFuture.flatMap(_.entity.toStrict(5 seconds).map(_.data.utf8String))
   }
 
-  def get(url: String):Future[String] = {
+  def get(path: String) = {
 
     val responseFuture: Future[HttpResponse] = Http().singleRequest(HttpRequest(
       method = HttpMethods.GET,
-      uri = url
-      )
+      uri = path
+    )
     )
 
     responseFuture.flatMap(_.entity.toStrict(5 seconds).map(_.data.utf8String))

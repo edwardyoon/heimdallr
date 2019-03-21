@@ -17,18 +17,15 @@
 package chat
 
 import akka.actor._
-import akka.http.scaladsl.model.ws.{Message, TextMessage}
-import akka.http.scaladsl.server.Directives._
-import akka.stream._
-import akka.stream.scaladsl._
 import akka.actor.SupervisorStrategy._
 import akka.NotUsed
-import akka.pattern.ask
-import akka.util.Timeout
-import scala.concurrent.Await
+import akka.stream._
+import akka.stream.scaladsl._
+import akka.http.scaladsl.model.ws.{Message, TextMessage}
+import akka.http.scaladsl.server.Directives._
+import akka.http.scaladsl.model.RemoteAddress
 import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits._
-
 import java.net._
 import EventConstants._
 
@@ -42,7 +39,10 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     pathPrefix(IntNumber) {
       chatRoomID => {
         chatSuper ! CreateChatRoom(chatRoomID)
-        handleWebSocketMessages(newUser(chatRoomID))
+        extractClientIP {
+          ip =>
+            handleWebSocketMessages(newUser(chatRoomID, ip))
+        }
       }
     }
 
@@ -51,7 +51,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     val localIpAddress = localhost.getHostAddress
 
     // Pass to ChatSupervisor Node-Infor
-    chatSuper ! RegNodeInfor(localIpAddress, port)
+    context.parent ! RegNodeInfor(localIpAddress, port)
 
     log.info(s"Server IP Address of System => ${localIpAddress}")
   }
@@ -77,9 +77,9 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
       (outMsg: UserActor.OutgoingMessage) => TextMessage(outMsg.text))
   }
 
-  def newUser(chatRoomID: Int): Flow[Message, Message, NotUsed] = {
+  def newUser(chatRoomID: Int, ip: RemoteAddress): Flow[Message, Message, NotUsed] = {
     // new connection - new user actor
-    val userActor = context.actorOf(Props(new UserActor(chatRoomID, chatSuper)))
+    val userActor = context.actorOf(Props(new UserActor(chatRoomID, chatSuper, ip)))
 
     // Set Sink & Source
     val incomingMsg = IncomingMessages(userActor)
@@ -95,17 +95,25 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     case x: Exception =>
       log.info("FIXME: ChatService => " + x.toString)
       Resume
+    /*
+    case _: ArithmeticException => Restart
+    case _: NullPointerException => Resume
+    case _: IllegalArgumentException => Stop
+    case t =>
+      super.supervisorStrategy.decider.applyOrElse( t, (_:Any) => Escalate )
+    */
   }
 
   override def preStart(): Unit = {
     log.info( "Heimdallr Server's staring ..." )
-    serviceBind(serviceRoute, servicePort)
+    ServiceBind(serviceRoute, servicePort)
     RegNode(servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     log.info( "Heimdallr Server's restarting ..." )
-    serviceUnbind()
+    //ChatRooms.SystemFailover()
+    ServiceUnbind()
     preStart()
   }
 
@@ -114,8 +122,9 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
   }
 
   override def postStop(): Unit = {
-    serviceUnbind()
-    log.info( "Heimdallr Server is stopped." )
+    //ChatRooms.SystemFailover()
+    ServiceUnbind()
+    log.info( "Heimdallr Server Down !" )
   }
 
   override def receive: Receive = {

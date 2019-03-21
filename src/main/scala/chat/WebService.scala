@@ -18,46 +18,43 @@ package chat
 
 import akka.actor._
 import akka.http.scaladsl.Http
-import akka.http.scaladsl.model.{HttpRequest, HttpResponse}
-import akka.stream.scaladsl.Flow
 import akka.stream._
 import akka.actor.ActorLogging
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.{Failure,Success}
 
-/**
-  * A trait class contains binding functions that binds to a user-specified port on the machine
-  */
 trait WebServiceActor extends Actor with ActorLogging {
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
   implicit val materializer = ActorMaterializer() //materialize actor to access stream
   private  var binding: scala.concurrent.Future[akka.http.scaladsl.Http.ServerBinding] = null
 
-  def serviceBind(
-    bindRoute: Flow[HttpRequest, HttpResponse, Any],
-    bindPort: Int
-  ): Unit = {
+  def ServiceBind(
+                   bindRoute: akka.stream.scaladsl.Flow[akka.http.scaladsl.model.HttpRequest,akka.http.scaladsl.model.HttpResponse,Any],
+                   bindPort: Int
+                 ): Unit = {
     binding = Http().bindAndHandle(bindRoute,"0.0.0.0", bindPort)
 
+    // the rest of the sample code will go here
     binding.onComplete {
       //binding success check
       case Success(binding) =>
         val localAddress = binding.localAddress
-        log.info(s"Server is available on ${localAddress.getAddress}:${localAddress.getPort}")
+        log.info(s"Server is listening on ${localAddress.getAddress}:${localAddress.getPort}")
 
       case Failure(e) =>
         log.warning(s"Binding failed with ${e.getMessage}")
     }
   }
 
-  def serviceUnbind():Unit = {
-    if (binding != null) {
+  def ServiceUnbind() = {
+    if( binding != null )
+    {
       binding
         .flatMap(_.unbind())
         .onComplete(_ =>
-          log.info("Unbinding listening port ... ")
+          log.info("listening port unbinding ... ")
         )
     }
   }
