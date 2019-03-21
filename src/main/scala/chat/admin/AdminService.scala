@@ -29,39 +29,39 @@ class AdminService(chatSuper: ActorRef) extends WebServiceActor with FailoverApi
       pathPrefix("health") {
         path("up") {
           context.parent ! HealthUp
-          HttpRespJson( "200 OK" )
+          httpRespJson( "200 OK" )
         } ~
           path("down") {
             context.parent ! HealthDown
-            HttpRespJson( "200 OK" )
+            httpRespJson( "200 OK" )
           } ~
           path("view") {
             context.parent ! HeimdallrView
-            HttpRespJson( "200 OK" )
+            httpRespJson( "200 OK" )
           }
       } ~
         pathPrefix("failover") {
           path(Segment) {
             protocol: String =>
-              HttpRespJson( failover(chatSuper, protocol) )
+              httpRespJson( failover(chatSuper, protocol) )
           }
         } ~
         pathPrefix("stats") {
           pathPrefix("count") {
             path("total") {
-              HttpRespJson( CountTotalOnly() )
+              httpRespJson( countTotalOnly() )
             }
           }
         }
     }
 
-  def HttpRespJson(body: String) = {
+  def httpRespJson(body: String) = {
     complete( HttpEntity(ContentTypes.`application/json`, body+"\r\n") )
   }
 
   override def preStart(): Unit = {
     log.debug( "Admin Server Staring ..." )
-    ServiceBind(serviceRoute, servicePort)
+    serviceBind(serviceRoute, servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -74,15 +74,15 @@ class AdminService(chatSuper: ActorRef) extends WebServiceActor with FailoverApi
   }
 
   override def postStop(): Unit = {
-    ServiceUnbind()
+    serviceUnbind()
     log.debug( "Admin Server Down !" )
   }
 
   override def receive: Receive = {
     case WebServiceStart =>
-      ServiceBind(serviceRoute, servicePort)
+      serviceBind(serviceRoute, servicePort)
     case WebServiceStop =>
-      ServiceUnbind()
+      serviceUnbind()
     case x =>
       log.error("AdminService Unknown message : " + x)
   }

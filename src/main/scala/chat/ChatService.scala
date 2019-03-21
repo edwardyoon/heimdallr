@@ -46,7 +46,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
       }
     }
 
-  def RegNode(port: Int):Unit = {
+  def regNode(port: Int):Unit = {
     val localhost = InetAddress.getLocalHost
     val localIpAddress = localhost.getHostAddress
 
@@ -56,7 +56,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     log.info(s"Server IP Address of System => ${localIpAddress}")
   }
 
-  def IncomingMessages(userActor: ActorRef): Sink[Message, NotUsed] = {
+  def incomingMessages(userActor: ActorRef): Sink[Message, NotUsed] = {
     Flow[Message].map {
       // transform websocket message to domain message
       case TextMessage.Strict(text) => UserActor.IncomingMessage(text)
@@ -66,7 +66,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     }.to(Sink.actorRef[UserActor.IncomingMessage](userActor, PoisonPill))
   }
 
-  def OutgoingMessages(userActor: ActorRef): Source[Message, NotUsed] = {
+  def outgoingMessages(userActor: ActorRef): Source[Message, NotUsed] = {
     Source.actorRef[UserActor.OutgoingMessage](20000, OverflowStrategy.fail)
       .mapMaterializedValue { outActor =>
         // give the user actor a way to send messages out
@@ -82,8 +82,8 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     val userActor = context.actorOf(Props(new UserActor(chatRoomID, chatSuper, ip)))
 
     // Set Sink & Source
-    val incomingMsg = IncomingMessages(userActor)
-    val outgoingMsg = OutgoingMessages(userActor)
+    val incomingMsg = incomingMessages(userActor)
+    val outgoingMsg = outgoingMessages(userActor)
 
     Flow.fromSinkAndSource(incomingMsg, outgoingMsg)
   }
@@ -106,14 +106,14 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
 
   override def preStart(): Unit = {
     log.info( "Heimdallr Server's staring ..." )
-    ServiceBind(serviceRoute, servicePort)
-    RegNode(servicePort)
+    serviceBind(serviceRoute, servicePort)
+    regNode(servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
     log.info( "Heimdallr Server's restarting ..." )
     //ChatRooms.SystemFailover()
-    ServiceUnbind()
+    serviceUnbind()
     preStart()
   }
 
@@ -123,7 +123,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
 
   override def postStop(): Unit = {
     //ChatRooms.SystemFailover()
-    ServiceUnbind()
+    serviceUnbind()
     log.info( "Heimdallr Server Down !" )
   }
 

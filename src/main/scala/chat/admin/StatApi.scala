@@ -47,7 +47,7 @@ trait StatApi extends CommonApi {
   implicit val timeout = Timeout(3 seconds)
   implicit val formats = Serialization.formats(NoTypeHints)
 
-  def CountTotalOnly(total: Int = 0, member: Int = 0, guest: Int = 0): String = {
+  def countTotalOnly(total: Int = 0, member: Int = 0, guest: Int = 0): String = {
     val hostName = environment.hostName
     var totalCount: Int = 0
     var memberCount: Int = 0
@@ -75,7 +75,7 @@ trait StatApi extends CommonApi {
     )
   }
 
-  def CountRoomsTerm(term: String, roomStats: mutable.Map[Int, Int]): String = {
+  def countRoomsTerm(term: String, roomStats: mutable.Map[Int, Int]): String = {
     write( StatsCount( ts = getCurrentDateTime(), node = environment.hostName, count = roomStats ) )
   }
 }

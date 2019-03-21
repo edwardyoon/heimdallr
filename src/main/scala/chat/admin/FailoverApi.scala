@@ -71,7 +71,7 @@ trait FailoverApi extends StatApi {
         }
 
         flog.info("System > Failover > RoomSize: " + ChatRooms.chatRooms.size )
-        flog.info("System > Failover > RoomInfo: " + CountRoomsTerm("rooms", aggCollection.roomStats))
+        flog.info("System > Failover > RoomInfo: " + countRoomsTerm("rooms", aggCollection.roomStats))
 
         ChatRooms.chatRooms.foreach{ case (k: Int, v: ActorRef) =>
           flog.info(s"${k} ChatRoom Failover")
@@ -84,19 +84,19 @@ trait FailoverApi extends StatApi {
         }
       }
 
-      json = CountTotalOnly(totalUserCount, memberCount, guestCount)
+      json = countTotalOnly(totalUserCount, memberCount, guestCount)
     }
     catch {
       case e: Exception =>
         val exceptionMsg = s"failover exception: ${e}"
-        json = FailoverRespReason(exceptionMsg)
+        json = failoverRespReason(exceptionMsg)
         flog.info(exceptionMsg)
     }
 
     json
   }
 
-  def FailoverRespReason(msg: String): String = {
+  def failoverRespReason(msg: String): String = {
     val hostName = environment.hostName
     write(
       FoverReason(
