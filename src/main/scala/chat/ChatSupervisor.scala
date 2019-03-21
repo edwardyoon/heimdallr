@@ -18,16 +18,12 @@ package chat
 
 import akka.actor._
 import akka.actor.SupervisorStrategy._
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext
-import scala.collection.mutable.ListBuffer
+import scala.concurrent.duration._
 import org.json4s._
 import org.json4s.{DefaultFormats, JValue}
-import org.json4s.jackson.JsonMethods._
-import org.json4s.jackson.Serialization.{read, write}
 import java.util.concurrent.TimeUnit
 import EventConstants._
-import com.redis.RedisClient
 
 /**
   * Parent actor of multiple chatroom actors.
@@ -36,13 +32,6 @@ import com.redis.RedisClient
 class ChatSupervisor(envType: String) extends Actor with ActorLogging {
   implicit val system = context.system
   implicit val executionContext: ExecutionContext = context.dispatcher
-
-  val redisIp       = system.settings.config.getString(s"akka.environment.${envType}.redis-ip")
-  val redisPort     = system.settings.config.getInt(s"akka.environment.${envType}.redis-port")
-  val redisPubClient= new RedisClient(redisIp, redisPort)
-  val redisSubClient= new RedisClient(redisIp, redisPort)
-  var ps: ActorRef  = null
-  var ss: ActorRef  = null
 
   override val supervisorStrategy =
     OneForOneStrategy(
@@ -57,29 +46,22 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     }
 
   override def preStart(): Unit = {
-    ps = context.actorOf(Props(new PubServiceActor(redisPubClient)), "ps")
-    context.watch(ps)
-    ss = context.actorOf(Props(new SubServiceActor(redisSubClient)), "ss")
-    context.watch(ss)
+    log.info( "Heimdallr ChatSupervisor Staring ..." )
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
+    log.info( "Heimdallr ChatSupervisor Restarting ..." )
     log.info( reason.toString )
     preStart()
   }
 
   override def postRestart(reason: Throwable): Unit = {
+    log.info( "Heimdallr ChatSupervisor Restarted." )
     log.info( reason.toString )
   }
 
-  override def postStop(): Unit = {}
-
-  /**
-    * @param hostName, port
-    */
-  def setNodeInfor(hostName: String, port: Int): Unit = {
-    ChatRooms.hostName = hostName
-    ChatRooms.port = port
+  override def postStop(): Unit = {
+    log.info( "Heimdallr ChatSupervisor Down !" )
   }
 
   /**
@@ -100,18 +82,34 @@ class ChatSupervisor(envType: String) extends Actor with ActorLogging {
     * @return the reference of newly created chatRoomActor
     */
   def createNewChatRoom(number: Int): ActorRef = {
-    //creates new ChatRoomActor and returns as an ActorRef
-    val chatroom = context.actorOf(Props(new ChatRoomActor(number, envType, ps, ss)), s"${number}")
-    ChatRooms.chatRooms += number -> chatroom
+    var chatroom: ActorRef = null
+    try {
+      //creates new ChatRoomActor and returns as an ActorRef
+      chatroom = context.actorOf(Props(new ChatRoomActor(number, envType)), s"${number}")
+      ChatRooms.chatRooms += number -> chatroom
+    }
+    catch {
+      case e: Exception =>
+        log.info(s"FIXME: Create new chat room(${number}) => " + e)
+        self ! CreateChatRoom(number)
+    }
+
     chatroom
   }
 
-  override def receive: Receive = {
-    case RegNodeInfor(hostName, port) =>
-      setNodeInfor(hostName, port)
+  def removeChatRoom(chatRoomID: Int): Unit = {
+    this.synchronized {
+      ChatRooms.chatRooms.remove(chatRoomID)
+    }
+  }
 
+  override def receive: Receive = {
     case CreateChatRoom(chatRoomID) =>
       getChatRoomActorRef(chatRoomID)
+
+    case RemoveChatRoom(chatRoomID) =>
+      removeChatRoom(chatRoomID)
+      environment.aggregator ! RemoveChatRoom(chatRoomID)
 
     case RegChatUser(chatRoomID, userActor) =>
       userActor ! JoinRoom(getChatRoomActorRef(chatRoomID))

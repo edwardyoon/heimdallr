@@ -14,19 +14,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package chat
+package chat.admin
 
-import akka.actor.ActorRef
-import org.json4s._
-import org.json4s.jackson.Serialization
-import akka.util.Timeout
-import scala.concurrent.duration._
-import scala.collection.mutable
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 /**
   * This object manages multiple chat rooms
   */
-object ChatRooms {
-  // Map that contains existing chatRoom actor reference with ID
-  var chatRooms: mutable.Map[Int, ActorRef] = mutable.Map.empty[Int, ActorRef]
+trait CommonApi {
+  def getCurrentDateTime(): String = {
+    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm").format(LocalDateTime.now)
+  }
+
+  def getCurrentDateTimeSec(): String = {
+    DateTimeFormatter.ofPattern("yyyy-MM-dd_HH:mm:ss").format(LocalDateTime.now)
+  }
 }
+

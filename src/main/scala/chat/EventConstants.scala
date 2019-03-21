@@ -33,11 +33,6 @@ object EventConstants {
   case object HealthUp
   case object HealthDown
 
-  case object AggregatorView
-  case object AggregatorValueToStats
-  case object AggregatorCollectionToStats
-  case class AggregatorRoomValueToStats(chatRoomID: Int)
-
   case class HeimdallrStart(args: Array[String])
   case class HeimdallrActorDown(actorRef: ActorRef)
 
@@ -53,4 +48,3 @@ object EventConstants {
   case class RegProps(props: Props, name: String)
   case class StopActor(actorRef: ActorRef)
 }
-

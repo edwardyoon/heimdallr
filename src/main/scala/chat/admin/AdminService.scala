@@ -14,40 +14,68 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package chat
+package chat.admin
 
+import akka.actor._
+import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
-import EventConstants._
+import chat.{ChatRooms, WebServiceActor}
+import chat.EventConstants._
 
-/**
-  * This service is used for communicating heartbeat message with load balancer
-  */
-class HealthyService extends WebServiceActor {
-  val servicePort = 8099
+class AdminService(chatSuper: ActorRef) extends WebServiceActor with FailoverApi {
+  val servicePort = 8090
   val serviceRoute= //<- adjustable depended on client url
     get {
-      pathEndOrSingleSlash {
-        complete("Welcome to Heimdallr")
-      }
+      pathPrefix("health") {
+        path("up") {
+          context.parent ! HealthUp
+          HttpRespJson( "200 OK" )
+        } ~
+          path("down") {
+            context.parent ! HealthDown
+            HttpRespJson( "200 OK" )
+          } ~
+          path("view") {
+            context.parent ! HeimdallrView
+            HttpRespJson( "200 OK" )
+          }
+      } ~
+        pathPrefix("failover") {
+          path(Segment) {
+            protocol: String =>
+              HttpRespJson( failover(chatSuper, protocol) )
+          }
+        } ~
+        pathPrefix("stats") {
+          pathPrefix("count") {
+            path("total") {
+              HttpRespJson( CountTotalOnly() )
+            }
+          }
+        }
     }
 
+  def HttpRespJson(body: String) = {
+    complete( HttpEntity(ContentTypes.`application/json`, body+"\r\n") )
+  }
+
   override def preStart(): Unit = {
-    log.info( "Healthy Service Staring ..." )
+    log.debug( "Admin Server Staring ..." )
     ServiceBind(serviceRoute, servicePort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.info( "Healthy Service Restarting ..." )
+    log.debug( "Admin Server Restarting ..." )
     preStart()
   }
 
   override def postRestart(reason: Throwable): Unit = {
-    log.info( "Healthy Service Restarted." )
+    log.debug( "Admin Server Restarted." )
   }
 
   override def postStop(): Unit = {
     ServiceUnbind()
-    log.info( "Healthy Service Down !" )
+    log.debug( "Admin Server Down !" )
   }
 
   override def receive: Receive = {
@@ -56,7 +84,6 @@ class HealthyService extends WebServiceActor {
     case WebServiceStop =>
       ServiceUnbind()
     case x =>
-      log.warning("HealthyService Unknown message : " + x)
+      log.error("AdminService Unknown message : " + x)
   }
 }
-

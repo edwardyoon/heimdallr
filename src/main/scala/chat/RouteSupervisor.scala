@@ -19,16 +19,19 @@ package chat
 import java.util.concurrent.TimeUnit
 import akka.actor.{Actor, ActorIdentity, ActorLogging, ActorRef, ActorSystem, Identify, OneForOneStrategy, Props}
 import akka.actor.SupervisorStrategy.{Escalate, Restart, Resume, Stop}
-import chat.EventConstants.{HeimdallrStart, HeimdallrView, RegActor, StopActor}
 import scala.concurrent.ExecutionContext
 import scala.concurrent.duration.Duration
-import EventConstants._
+import chat.admin.AdminService
+import chat.EventConstants._
 
 object environment {
   var system: ActorSystem = null
   var aggregator: ActorRef = null
   var version = ""
   var envType = ""
+  var serviceMode: String = "running"
+  var hostName: String = "localhost"
+  var port: Int = 8000
 
   def getHeimdallrSystem():ActorSystem = {
     system
@@ -40,6 +43,14 @@ object environment {
 
   def getEnvType():String = {
     envType
+  }
+
+  def setServiceMode(mode: String) = {
+    serviceMode = mode
+  }
+
+  def getServiceMode(): String = {
+    serviceMode
   }
 }
 
@@ -76,19 +87,20 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
       environment.version = system.settings.config.getString("akka.heimdallr-version" )
       environment.aggregator = context.actorOf(Props[Aggregator], "aggregator")
       context.watch(environment.aggregator)
-
       hs = context.actorOf(Props[HealthyService], "hs")
       context.watch(hs)
-      as = context.actorOf(Props[AdminService], "as")
-      context.watch(as)
-
       cs = context.actorOf(Props(classOf[ChatSupervisor], env), "cs")
       context.watch(cs)
       ws = context.actorOf(Props(classOf[ChatService], cs), "ws")
       context.watch(ws)
+      as = context.actorOf(Props(classOf[AdminService], cs), "as")
+      context.watch(as)
 
 
       HeimdallrLogo()
+
+    case RegNodeInfor(hostName, port) =>
+      setNodeInfor(hostName, port)
 
     case HealthUp =>
       hs ! WebServiceStart
@@ -122,6 +134,14 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
 
     case x =>
       log.warning("RouteSupervisor Unknown message : " + x)
+  }
+
+  /**
+    * @param hostName, port
+    */
+  private def setNodeInfor(hostName: String, port: Int): Unit = {
+    environment.hostName = hostName
+    environment.port = port
   }
 
   private def ViewActorProperties() = {
