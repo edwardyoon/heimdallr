@@ -30,7 +30,7 @@ trait PubSubService extends Actor with ActorLogging {
   private var redisPubClient: RedisClient = null
   private var redisSubClient: RedisClient = null
 
-  def Subscribe(chatRoomActor: ActorRef, channel: String, ip: String, port: Int) = {
+  def subscribe(chatRoomActor: ActorRef, channel: String, ip: String, port: Int) = {
     redisPubClient = new RedisClient(ip, port)
     redisSubClient = new RedisClient(ip, port)
     redisSubClient.subscribe(channel) {
@@ -39,11 +39,11 @@ trait PubSubService extends Actor with ActorLogging {
     }
   }
 
-  def Unsubscribe(chatRoomActor: ActorRef, channel: String) = {
+  def unsubscribe(chatRoomActor: ActorRef, channel: String) = {
     redisSubClient.unsubscribe(channel)
   }
 
-  def Publish(channel: String, message: String) = {
+  def publish(channel: String, message: String) = {
     redisPubClient.publish(channel, message)
   }
 

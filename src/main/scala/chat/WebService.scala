@@ -30,7 +30,7 @@ trait WebServiceActor extends Actor with ActorLogging {
   implicit val materializer = ActorMaterializer() //materialize actor to access stream
   private  var binding: scala.concurrent.Future[akka.http.scaladsl.Http.ServerBinding] = null
 
-  def ServiceBind(
+  def serviceBind(
                    bindRoute: akka.stream.scaladsl.Flow[akka.http.scaladsl.model.HttpRequest,akka.http.scaladsl.model.HttpResponse,Any],
                    bindPort: Int
                  ): Unit = {
@@ -48,7 +48,7 @@ trait WebServiceActor extends Actor with ActorLogging {
     }
   }
 
-  def ServiceUnbind() = {
+  def serviceUnbind() = {
     if( binding != null )
     {
       binding

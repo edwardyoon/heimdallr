@@ -81,12 +81,12 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends PubSubService {
     }
   }
 
-  def ConvertMsg4User(msg: String): String = {
+  def convertMsg4User(msg: String): String = {
     msg.replaceAll("\\p{Cntrl}", "")
   }
 
   def broadcast(msg: String): Unit = {
-    val data = ConvertMsg4User(msg)
+    val data = convertMsg4User(msg)
     users.foreach(_ ! ChatRoomActor.ChatMessage(data))
   }
 
@@ -136,7 +136,7 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends PubSubService {
 
   override def preStart(): Unit = {
     log.info(s"[#$chatRoomID] actor has created. ${chatRoomName}" )
-    Subscribe(self, chatRoomName, redisIp, redisPort)
+    subscribe(self, chatRoomName, redisIp, redisPort)
   }
 
   override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
@@ -189,13 +189,13 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends PubSubService {
 
     case msg: ChatMessage =>  // publish message to all chatRoomActor that subscribes same chatRoomName
       log.info(s"messageLog ${msg.message}")
-      Publish(chatRoomName, msg.message)
+      publish(chatRoomName, msg.message)
 
     case SubscribeMessage(pubsub) =>
       pubsubTask(self, pubsub)
 
     case UnsubscribeMessage(channel) =>
-      Unsubscribe(self, channel)
+      unsubscribe(self, channel)
 
     case Terminated(user) => // for UserActor
       log.info(s"[#$chatRoomID] receive Terminated Event:" + chatRoomName)

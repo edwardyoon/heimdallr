@@ -81,7 +81,7 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
 
   override def receive: Receive = {
     case HeimdallrStart(args) =>
-      ArgsValidation(args)
+      argsValidation(args)
       environment.setEnvType(env)
       environment.system = system
       environment.version = system.settings.config.getString("akka.heimdallr-version" )
@@ -97,7 +97,7 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
       context.watch(as)
 
 
-      HeimdallrLogo()
+      heimdallrLogo()
 
     case RegNodeInfor(hostName, port) =>
       setNodeInfor(hostName, port)
@@ -109,7 +109,7 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
       hs ! WebServiceStop
 
     case HeimdallrView =>
-      ViewActorProperties()
+      viewActorProperties()
 
     case RegActor(actorRef) =>
       context.watch(actorRef)
@@ -144,26 +144,26 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
     environment.port = port
   }
 
-  private def ViewActorProperties() = {
+  private def viewActorProperties() = {
     self ! "akka://heimdallr/user/Supervisor/cs/*"
     self ! "akka://heimdallr/user/Supervisor/ws/*"
   }
 
-  private def ArgsValidation(args: Array[String]) = {
+  private def argsValidation(args: Array[String]) = {
     env = args.length match {
       case 1 => args(0) match {
         case "live" => args(0)
         case "standby" => args(0)
         case "dev" => "development"
         case "development" => args(0)
-        case _ => Bye()
+        case _ => bye()
       }
 
-      case _ => Bye()
+      case _ => bye()
     }
   }
 
-  private def HeimdallrLogo() = {
+  private def heimdallrLogo() = {
     log.info( "********************************************************************" )
     log.info(s"                         Heimdallr V.${environment.version}" )
     log.info( "--------------------------------------------------------------------" )
@@ -174,7 +174,7 @@ class RouteSupervisor(actorSystem: ActorSystem) extends Actor with ActorLogging 
     log.info( "********************************************************************" )
   }
 
-  private def Bye() = {
+  private def bye() = {
     log.info("\nUsage : ")
     log.info(" - sbt \"run [live|standby|development or dev]\"\n")
     context.system.terminate()
