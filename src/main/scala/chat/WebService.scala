@@ -16,24 +16,22 @@
  */
 package chat
 
-import akka.actor._
-import akka.http.scaladsl.Http
-import akka.stream._
-import akka.actor.ActorLogging
-import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits._
 import scala.util.{Failure,Success}
+import akka.actor.ActorSystem
+import akka.stream.Materializer
+import akka.http.scaladsl.Http
+import akka.http.scaladsl.Http.{ ServerBinding }
+import akka.http.scaladsl.model.{ HttpRequest, HttpResponse, Uri }
+import akka.stream.scaladsl.{ Flow, Sink, Source }
+import org.slf4j.LoggerFactory
 
-trait WebServiceActor extends Actor with ActorLogging {
-  implicit val system = context.system
-  implicit val executionContext: ExecutionContext = context.dispatcher
-  implicit val materializer = ActorMaterializer() //materialize actor to access stream
-  private  var binding: scala.concurrent.Future[akka.http.scaladsl.Http.ServerBinding] = null
+trait WebService {
+  val log = LoggerFactory.getLogger("total")
+  private var binding: scala.concurrent.Future[ServerBinding] = null
 
-  def serviceBind(
-                   bindRoute: akka.stream.scaladsl.Flow[akka.http.scaladsl.model.HttpRequest,akka.http.scaladsl.model.HttpResponse,Any],
-                   bindPort: Int
-                 ): Unit = {
+  def serviceBind(serviceName: String, bindRoute: Flow[HttpRequest, HttpResponse, Any], bindPort: Int)
+                 (implicit actorSystem: ActorSystem, materializer: Materializer): Unit = {
     binding = Http().bindAndHandle(bindRoute,"0.0.0.0", bindPort)
 
     // the rest of the sample code will go here
@@ -41,21 +39,23 @@ trait WebServiceActor extends Actor with ActorLogging {
       //binding success check
       case Success(binding) =>
         val localAddress = binding.localAddress
-        log.info(s"Server is listening on ${localAddress.getAddress}:${localAddress.getPort}")
+        log.info(s"${serviceName} is listening on ${localAddress.getAddress}:${localAddress.getPort}")
 
       case Failure(e) =>
-        log.warning(s"Binding failed with ${e.getMessage}")
+        log.error(s"${serviceName} Binding failed with ${e.getMessage}")
     }
   }
 
-  def serviceUnbind() = {
+  def serviceUnbind(serviceName: String) = {
     if( binding != null )
     {
       binding
         .flatMap(_.unbind())
         .onComplete(_ =>
-          log.info("listening port unbinding ... ")
+          log.info(s"${serviceName} listening port unbinding ... ")
         )
     }
+    else
+      log.info( s"${serviceName} Unbinding Failed !" )
   }
 }

@@ -16,26 +16,31 @@
  */
 package chat
 
+import java.net._
+
+import scala.concurrent.ExecutionContext
+import scala.concurrent.ExecutionContext.Implicits._
 import akka.actor._
-import akka.actor.SupervisorStrategy._
 import akka.NotUsed
 import akka.stream._
 import akka.stream.scaladsl._
 import akka.http.scaladsl.model.ws.{Message, TextMessage}
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.model.RemoteAddress
-import scala.concurrent.duration._
-import scala.concurrent.ExecutionContext.Implicits._
-import java.net._
+import chat.admin.AdminService
 import EventConstants._
+//import chat.utils.HttpClient
 
-/**
-  * The chat service. This routes the messages incoming from outside to the destination user actors.
-  * @param chatSuper
-  */
-class ChatService(chatSuper: ActorRef) extends WebServiceActor {
-  val servicePort = 8000
-  val serviceRoute= //<- adjustable depended on client url
+class ChatService(env: String, admin: AdminService)
+                 (implicit system: ActorSystem, mat: ActorMaterializer, dispatcher: ExecutionContext)
+  extends WebService {
+
+  private var chatSuper:  ActorRef  = null
+  private var aggregator: ActorRef  = null
+  private var httpClient: HttpClient= null
+
+  private val servicePort = 8000
+  private val serviceRoute= //<- adjustable depended on client url
     pathPrefix(IntNumber) {
       chatRoomID => {
         chatSuper ! CreateChatRoom(chatRoomID)
@@ -46,12 +51,12 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
       }
     }
 
-  def regNode(port: Int):Unit = {
+  def regNode(port: Int) = {
     val localhost = InetAddress.getLocalHost
     val localIpAddress = localhost.getHostAddress
 
-    // Pass to ChatSupervisor Node-Infor
-    context.parent ! RegNodeInfor(localIpAddress, port)
+    environment.hostName = localIpAddress
+    environment.port = port
 
     log.info(s"Server IP Address of System => ${localIpAddress}")
   }
@@ -79,7 +84,7 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
 
   def newUser(chatRoomID: Int, ip: RemoteAddress): Flow[Message, Message, NotUsed] = {
     // new connection - new user actor
-    val userActor = context.actorOf(Props(new UserActor(chatRoomID, chatSuper, ip)))
+    val userActor = system.actorOf(Props(new UserActor(chatRoomID, chatSuper, ChatRooms.httpClient, ip)))
 
     // Set Sink & Source
     val incomingMsg = incomingMessages(userActor)
@@ -88,48 +93,22 @@ class ChatService(chatSuper: ActorRef) extends WebServiceActor {
     Flow.fromSinkAndSource(incomingMsg, outgoingMsg)
   }
 
-  override val supervisorStrategy = OneForOneStrategy(
-    maxNrOfRetries = 10,
-    withinTimeRange = 1 minute,
-    loggingEnabled = true) {
-    case x: Exception =>
-      log.info("FIXME: ChatService => " + x.toString)
-      Resume
-    /*
-    case _: ArithmeticException => Restart
-    case _: NullPointerException => Resume
-    case _: IllegalArgumentException => Stop
-    case t =>
-      super.supervisorStrategy.decider.applyOrElse( t, (_:Any) => Escalate )
-    */
-  }
+  def start() {
+    log.info( "ChatService staring ..." )
 
-  override def preStart(): Unit = {
-    log.info( "Heimdallr Server's staring ..." )
-    serviceBind(serviceRoute, servicePort)
+    environment.setEnvType(env)
+    environment.version = system.settings.config.getString("akka.heimdallr-version" )
+
+    chatSuper = system.actorOf(Props(classOf[ChatSupervisor], env), "cs")
+    admin.setChatSupervisorActorRef(chatSuper)
+
     regNode(servicePort)
+    serviceBind(this.getClass.getSimpleName, serviceRoute, servicePort)
+
+    log.info(environment.HeimdallrLogo(system))
   }
 
-  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.info( "Heimdallr Server's restarting ..." )
-    //ChatRooms.SystemFailover()
-    serviceUnbind()
-    preStart()
-  }
-
-  override def postRestart(reason: Throwable): Unit = {
-    log.info( "Heimdallr Server has restarted." )
-  }
-
-  override def postStop(): Unit = {
-    //ChatRooms.SystemFailover()
-    serviceUnbind()
-    log.info( "Heimdallr Server Down !" )
-  }
-
-  override def receive: Receive = {
-    case HeimdallrError => throw new ArithmeticException()
-    case x => log.warning("Unknown message : " + x)
+  def stop(): Unit = {
+    serviceUnbind(this.getClass.getSimpleName)
   }
 }
-
