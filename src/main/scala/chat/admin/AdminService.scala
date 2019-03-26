@@ -16,74 +16,60 @@
  */
 package chat.admin
 
+import scala.concurrent.ExecutionContext
 import akka.actor._
+import akka.stream.ActorMaterializer
 import akka.http.scaladsl.model.{ContentTypes, HttpEntity}
 import akka.http.scaladsl.server.Directives._
-import chat.{ChatRooms, WebServiceActor}
-import chat.EventConstants._
+import chat.{HealthyService, WebService}
 
-class AdminService(chatSuper: ActorRef) extends WebServiceActor with FailoverApi {
-  val servicePort = 8090
-  val serviceRoute= //<- adjustable depended on client url
+class AdminService(healthy: HealthyService)
+                  (implicit system: ActorSystem, mat: ActorMaterializer, dispatcher: ExecutionContext)
+  extends WebService
+    with CommonApi {
+
+  private var chatSuper: ActorRef = null
+  private val servicePort = 8090
+  private val serviceRoute= //<- adjustable depended on client url
     get {
       pathPrefix("health") {
         path("up") {
-          context.parent ! HealthUp
+          healthy.start()
           httpRespJson( "200 OK" )
         } ~
           path("down") {
-            context.parent ! HealthDown
-            httpRespJson( "200 OK" )
-          } ~
-          path("view") {
-            context.parent ! HeimdallrView
+            healthy.stop()
             httpRespJson( "200 OK" )
           }
-      } ~
-        pathPrefix("failover") {
-          path(Segment) {
-            protocol: String =>
-              httpRespJson( failover(chatSuper, protocol) )
+        path("view") {
+          var result: String = ""
+          if(chatSuper != null) {
+            chatSuper ! "akka://heimdallr/user/*"
+            chatSuper ! "akka://heimdallr/user/cs/*"
+            result = "200 OK"
           }
-        } ~
-        pathPrefix("stats") {
-          pathPrefix("count") {
-            path("total") {
-              httpRespJson( countTotalOnly() )
-            }
+          else {
+            result = "ChatSupervisor ActorRef is NULL"
           }
+          httpRespJson(result)
         }
+      }
     }
 
   def httpRespJson(body: String) = {
     complete( HttpEntity(ContentTypes.`application/json`, body+"\r\n") )
   }
 
-  override def preStart(): Unit = {
-    log.debug( "Admin Server Staring ..." )
-    serviceBind(serviceRoute, servicePort)
+  def setChatSupervisorActorRef(actorRef: ActorRef) = {
+    chatSuper = actorRef
   }
 
-  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.debug( "Admin Server Restarting ..." )
-    preStart()
+  def start(): Unit = {
+    log.debug( "Admin Server staring ..." )
+    serviceBind(this.getClass.getSimpleName, serviceRoute, servicePort)
   }
 
-  override def postRestart(reason: Throwable): Unit = {
-    log.debug( "Admin Server Restarted." )
-  }
-
-  override def postStop(): Unit = {
-    serviceUnbind()
-    log.debug( "Admin Server Down !" )
-  }
-
-  override def receive: Receive = {
-    case WebServiceStart =>
-      serviceBind(serviceRoute, servicePort)
-    case WebServiceStop =>
-      serviceUnbind()
-    case x =>
-      log.error("AdminService Unknown message : " + x)
+  def stop(): Unit = {
+    serviceUnbind(this.getClass.getSimpleName)
   }
 }

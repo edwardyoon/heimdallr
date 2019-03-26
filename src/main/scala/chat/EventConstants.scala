@@ -18,7 +18,6 @@ package chat
 
 import akka.actor._
 
-//sealed trait InternalProtocol
 object EventConstants {
 
   case object HeimdallrStop

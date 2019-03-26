@@ -29,4 +29,5 @@ import scala.collection.mutable
 object ChatRooms {
   // Map that contains existing chatRoom actor reference with ID
   var chatRooms: mutable.Map[Int, ActorRef] = mutable.Map.empty[Int, ActorRef]
+  var httpClient: ActorRef = null
 }

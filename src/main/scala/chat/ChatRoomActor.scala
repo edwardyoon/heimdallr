@@ -93,7 +93,6 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends PubSubService {
   def updateIncrRoomUser(isGuest: Boolean, firstJoin: Boolean, joinUser: ActorRef) = {
     if(firstJoin) {
       users += joinUser
-      environment.aggregator ! UpdateChatCount(chatRoomID, users.size, -1, -1)
 
       // we also would like to remove the user when its actor is stopped
       context.watch(joinUser)
@@ -105,8 +104,6 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends PubSubService {
       else {
         member+= 1
       }
-
-      environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
     }
   }
 
@@ -121,7 +118,6 @@ class ChatRoomActor(chatRoomID: Int, envType: String) extends PubSubService {
     }
 
     users -= termUser
-    environment.aggregator ! UpdateChatCount(chatRoomID, users.size, member, guest)
 
     if(users.isEmpty) {
       destroyChatRoom()

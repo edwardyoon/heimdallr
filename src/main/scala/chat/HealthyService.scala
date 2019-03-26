@@ -16,47 +16,27 @@
  */
 package chat
 
+import akka.actor.ActorSystem
+import akka.stream.ActorMaterializer
 import akka.http.scaladsl.server.Directives._
-import EventConstants._
 
-/**
-  * This service is used for communicating heartbeat message with load balancer
-  */
-class HealthyService extends WebServiceActor {
-  val servicePort = 8099
-  val serviceRoute= //<- adjustable depended on client url
+class HealthyService()(implicit system: ActorSystem, mat: ActorMaterializer)
+  extends WebService {
+
+  private val servicePort = 8099
+  private val serviceRoute= //<- adjustable depended on client url
     get {
       pathEndOrSingleSlash {
         complete("Welcome to Heimdallr")
       }
     }
 
-  override def preStart(): Unit = {
-    log.info( "Healthy Service Staring ..." )
-    serviceBind(serviceRoute, servicePort)
+  def start(): Unit = {
+    log.info( "Healthy Service staring ..." )
+    serviceBind(this.getClass.getSimpleName, serviceRoute, servicePort)
   }
 
-  override def preRestart(reason: Throwable, message: Option[Any]): Unit = {
-    log.info( "Healthy Service Restarting ..." )
-    preStart()
-  }
-
-  override def postRestart(reason: Throwable): Unit = {
-    log.info( "Healthy Service Restarted." )
-  }
-
-  override def postStop(): Unit = {
-    serviceUnbind()
-    log.info( "Healthy Service Down !" )
-  }
-
-  override def receive: Receive = {
-    case WebServiceStart =>
-      serviceBind(serviceRoute, servicePort)
-    case WebServiceStop =>
-      serviceUnbind()
-    case x =>
-      log.warning("HealthyService Unknown message : " + x)
+  def stop(): Unit = {
+    serviceUnbind(this.getClass.getSimpleName)
   }
 }
-
